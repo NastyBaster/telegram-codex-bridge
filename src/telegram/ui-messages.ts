@@ -79,8 +79,8 @@ export function buildProjectPickerMessage(picker: ProjectPickerResult): {
 
   rows.push(...chunkButtons(candidateButtons, 5));
   rows.push([
-    { text: "浏览目录", callback_data: encodeNewBrowseOpenCallback() },
-    { text: "手动输入路径", callback_data: encodePathManualCallback() }
+    { text: "Browse directory", callback_data: encodeNewBrowseOpenCallback() },
+    { text: "Enter path manually", callback_data: encodePathManualCallback() }
   ]);
 
   const lines = [picker.title];
@@ -121,9 +121,9 @@ export function buildProjectBrowseRootPickerMessage(options: {
     text: `${root.index + 1}`,
     callback_data: encodeNewBrowseRootCallback(root.index)
   }]);
-  rows.push([{ text: "返回项目列表", callback_data: encodeNewBrowseBackCallback() }]);
+  rows.push([{ text: "Back to project list", callback_data: encodeNewBrowseBackCallback() }]);
 
-  const lines = ["选择要浏览的根目录"];
+  const lines = ["Choose a root directory to browse"];
   for (const root of options.roots) {
     lines.push("");
     lines.push(`${root.index + 1}. ${root.label}`);
@@ -141,9 +141,9 @@ export function buildManualPathPrompt(): {
   replyMarkup: TelegramInlineKeyboardMarkup;
 } {
   return {
-    text: "请发送要开始会话的目录路径，例如：/home/ubuntu/Repo/openclaw\n发送 /cancel 返回项目列表。",
+    text: "Send the directory path to start a session, for example: /home/ubuntu/Repo/openclaw\nSend /cancel to return to the project list.",
     replyMarkup: {
-      inline_keyboard: [[{ text: "返回项目列表", callback_data: encodePathBackCallback() }]]
+      inline_keyboard: [[{ text: "Back to project list", callback_data: encodePathBackCallback() }]]
     }
   };
 }
@@ -154,14 +154,14 @@ export function buildManualPathConfirmMessage(candidate: ProjectCandidate): {
 } {
   return {
     text: [
-      "要在这个目录中新建会话吗？",
-      formatHtmlField("项目：", candidate.displayName),
-      formatHtmlField("路径：", candidate.projectPath)
+      "Create a new session in this directory?",
+      formatHtmlField("Project: ", candidate.displayName),
+      formatHtmlField("Path: ", candidate.projectPath)
     ].join("\n"),
     replyMarkup: {
       inline_keyboard: [
-        [{ text: "确认新建会话", callback_data: encodePathConfirmCallback(candidate.projectKey) }],
-        [{ text: "返回项目列表", callback_data: encodePathBackCallback() }]
+        [{ text: "Create session", callback_data: encodePathConfirmCallback(candidate.projectKey) }],
+        [{ text: "Back to project list", callback_data: encodePathBackCallback() }]
       ]
     }
   };
@@ -172,12 +172,12 @@ export function buildNoNewProjectsMessage(): {
   replyMarkup: TelegramInlineKeyboardMarkup;
 } {
   return {
-    text: "这个入口已下线。请使用浏览目录或手动输入路径。",
+    text: "This entry is no longer available. Use Browse directory or Enter path manually.",
     replyMarkup: {
       inline_keyboard: [
-        [{ text: "浏览目录", callback_data: encodeNewBrowseOpenCallback() }],
-        [{ text: "手动输入路径", callback_data: encodePathManualCallback() }],
-        [{ text: "返回项目列表", callback_data: encodePathBackCallback() }]
+        [{ text: "Browse directory", callback_data: encodeNewBrowseOpenCallback() }],
+        [{ text: "Enter path manually", callback_data: encodePathManualCallback() }],
+        [{ text: "Back to project list", callback_data: encodePathBackCallback() }]
       ]
     }
   };
