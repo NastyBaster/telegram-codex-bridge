@@ -83,6 +83,32 @@ test("createDeferredTerminalNoticeView creates semantic notice copy without Tele
   });
 });
 
+test("createDeferredTerminalNoticeView uses English deferred notice copy when requested", () => {
+  const finalAnswerNotice = createDeferredTerminalNoticeView(
+    createFinalAnswerViewRow({
+      kind: "final_answer",
+      pages: ["<b>Page 1</b>", "<b>Page 2</b>"]
+    }),
+    "en"
+  );
+  const planNotice = createDeferredTerminalNoticeView(
+    createFinalAnswerViewRow({
+      kind: "plan_result",
+      pages: ["<b>Plan 1</b>"]
+    }),
+    "en"
+  );
+
+  assert.equal(
+    finalAnswerNotice.html,
+    "<i>The final answer has not been delivered yet. Tap \"Expand full answer\" to render it again.</i>"
+  );
+  assert.equal(
+    planNotice.html,
+    "<i>The plan result has not been delivered yet. Tap \"Expand plan\" to render it again.</i>"
+  );
+});
+
 test("createRecentOutputEntryView keeps recent-output identity in semantic form", () => {
   assert.deepEqual(createRecentOutputEntryView({
     sessionName: "Session Beta",

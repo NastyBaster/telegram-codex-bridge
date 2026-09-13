@@ -4,6 +4,21 @@ import type {
   TerminalResultControlView,
   TerminalResultDeliveryView
 } from "../interaction-model/terminal.js";
+import type { UiLanguage } from "../../types.js";
+
+const DEFERRED_TERMINAL_NOTICE_COPY: Record<UiLanguage, {
+  planResult: string;
+  finalAnswer: string;
+}> = {
+  zh: {
+    planResult: "<i>方案结果暂未送达。点击“展开方案”重新渲染。</i>",
+    finalAnswer: "<i>最终答复暂未送达。点击“展开全文”重新渲染。</i>"
+  },
+  en: {
+    planResult: "<i>The plan result has not been delivered yet. Tap \"Expand plan\" to render it again.</i>",
+    finalAnswer: "<i>The final answer has not been delivered yet. Tap \"Expand full answer\" to render it again.</i>"
+  }
+};
 
 export function createTerminalResultDeliveryView(
   saved: PersistedTerminalResultRecord,
@@ -20,19 +35,21 @@ export function createTerminalResultDeliveryView(
 }
 
 export function createDeferredTerminalNoticeView(
-  saved: PersistedTerminalResultRecord
+  saved: PersistedTerminalResultRecord,
+  language: UiLanguage = "zh"
 ): TerminalResultDeliveryView {
+  const copy = DEFERRED_TERMINAL_NOTICE_COPY[language];
   if (saved.kind === "plan_result") {
     return {
       kind: "plan_result",
-      html: "<i>方案结果暂未送达。点击“展开方案”重新渲染。</i>",
+      html: copy.planResult,
       controls: createTerminalResultControls(saved)
     };
   }
 
   return {
     kind: "final_answer",
-    html: "<i>最终答复暂未送达。点击“展开全文”重新渲染。</i>",
+    html: copy.finalAnswer,
     controls: createTerminalResultControls(saved)
   };
 }

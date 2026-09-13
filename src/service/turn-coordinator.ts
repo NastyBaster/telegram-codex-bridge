@@ -45,7 +45,7 @@ import type {
 } from "./interaction-broker.js";
 import type { EgressMessageSendResult } from "../packs/contract.js";
 import type { BridgeStateStore } from "../state/store.js";
-import type { SessionRow, ReasoningEffort } from "../types.js";
+import type { SessionRow, ReasoningEffort, UiLanguage } from "../types.js";
 import {
   createStatusCardMessageState,
   type ErrorCardState,
@@ -148,6 +148,7 @@ interface TurnCoordinatorDeps {
   logger: Logger;
   getStore: () => BridgeStateStore | null;
   getAppServer: () => CodexAppServerClient | null;
+  getUiLanguage: () => UiLanguage;
   ensureAppServerAvailable: () => Promise<void>;
   fetchRuntimeConfig: (cwd: string) => Promise<{
     model: string | null;
@@ -1289,7 +1290,7 @@ export class TurnCoordinator {
       return createFailedSurfaceOperationResult("terminal_result_deferred_notice", "send_failed");
     }
 
-    const renderedNotice = createDeferredTerminalNoticeView(saved);
+    const renderedNotice = createDeferredTerminalNoticeView(saved, this.deps.getUiLanguage());
     const notice = store.createRuntimeNotice({
       chatId: activeTurn.chatId,
       type: "terminal_delivery_deferred",

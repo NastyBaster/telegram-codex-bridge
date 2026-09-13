@@ -455,6 +455,7 @@ export class BridgeService {
       logger: this.loggerAdapter,
       getStore: () => this.store,
       getAppServer: () => this.appServer,
+      getUiLanguage: () => this.getUiLanguage(),
       ensureAppServerAvailable: async () => this.ensureAppServerAvailable(),
       fetchRuntimeConfig: async (cwd) => this.fetchRuntimeConfig(cwd),
       fetchAllModels: async () => this.fetchAllModels(),

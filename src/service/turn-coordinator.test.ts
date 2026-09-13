@@ -7,6 +7,7 @@ import { join } from "node:path";
 import type { Logger } from "../logger.js";
 import type { BridgePaths } from "../paths.js";
 import type { CodexAppServerClient } from "../codex/app-server.js";
+import type { UiLanguage } from "../types.js";
 import type {
   ControlSurfaceFileResult,
   ControlSurfaceImageResult
@@ -93,6 +94,7 @@ async function createCoordinatorContext(options: {
     enabled: boolean;
     failureText: string;
   } | null;
+  getUiLanguage?: () => UiLanguage;
   fetchRuntimeConfig?: () => Promise<{
     model: string | null;
     reasoningEffort: "none" | "minimal" | "low" | "medium" | "high" | "xhigh" | null;
@@ -147,6 +149,7 @@ async function createCoordinatorContext(options: {
     logger: testLogger,
     getStore: () => store,
     getAppServer: () => appServer as CodexAppServerClient,
+    getUiLanguage: () => options.getUiLanguage?.() ?? "zh",
     ensureAppServerAvailable: async () => {},
     fetchRuntimeConfig: async () =>
       options.fetchRuntimeConfig
@@ -1742,6 +1745,56 @@ test("TurnCoordinator leaves a deferred terminal notice when final answer delive
     assert.deepEqual(reanchorReasons, []);
     assert.deepEqual(finalizedHandoffs, [{ chatId: "chat-1", sessionId: session.sessionId }]);
     assert.equal(store.countRuntimeNotices(), 0);
+  } finally {
+    await cleanup();
+  }
+});
+
+test("TurnCoordinator localizes deferred terminal notices with the configured UI language", async () => {
+  let sendAttempt = 0;
+  const { coordinator, store, sentHtmlMessages, cleanup } = await createCoordinatorContext({
+    getUiLanguage: () => "en",
+    appServer: {
+      resumeThread: async () => ({
+        thread: {
+          id: "thread-deferred-final-en",
+          turns: [{
+            id: "turn-deferred-final-en",
+            items: [{
+              type: "agentMessage",
+              phase: "final_answer",
+              text: "Deferred final answer"
+            }]
+          }]
+        }
+      })
+    },
+    safeSendHtmlMessageResult: async () => {
+      sendAttempt += 1;
+      return sendAttempt === 1 ? null : { messageId: 1 };
+    }
+  });
+
+  try {
+    const session = store.createSession({
+      chatId: "chat-1",
+      displayName: "Session Deferred",
+      projectName: "Project One",
+      projectPath: "/tmp/project-one"
+    });
+
+    await coordinator.beginActiveTurn("chat-1", session, "thread-deferred-final-en", "turn-deferred-final-en", "inProgress");
+    await coordinator.handleAppServerNotification("turn/completed", {
+      threadId: "thread-deferred-final-en",
+      turnId: "turn-deferred-final-en",
+      status: "completed"
+    });
+
+    assert.equal(sentHtmlMessages.length, 1);
+    assert.equal(
+      sentHtmlMessages[0]?.html,
+      "<i>The final answer has not been delivered yet. Tap \"Expand full answer\" to render it again.</i>"
+    );
   } finally {
     await cleanup();
   }
