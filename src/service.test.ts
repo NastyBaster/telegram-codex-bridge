@@ -5761,6 +5761,7 @@ test("manual path confirmation accepts readable directories and preserves inline
 
   try {
     authorizeChat(store, "chat-1");
+    store.setUiLanguage("en");
     const projectPath = join(paths.homeDir, "Repo", "manual-project");
     await mkdir(projectPath, { recursive: true });
 
@@ -5804,6 +5805,7 @@ test("manual path flow replaces stale picker cards when edits fail", async () =>
 
   try {
     authorizeChat(store, "chat-1");
+    store.setUiLanguage("en");
     const projectPath = join(paths.homeDir, "Repo", "manual-fallback-project");
     await mkdir(projectPath, { recursive: true });
 
@@ -5841,7 +5843,7 @@ test("manual path flow replaces stale picker cards when edits fail", async () =>
 
     assert.deepEqual(deleted, [pickerMessageId, sent[1]!.messageId, sent[2]!.messageId]);
     assert.equal(sent[3]?.parseMode, "HTML");
-    assert.match(sent[3]?.text ?? "", /<b>已新建会话<\/b>/u);
+    assert.match(sent[3]?.text ?? "", /<b>New session created<\/b>/u);
     assert.match(sent[3]?.text ?? "", /manual-fallback-project/u);
     assert.equal(store.getActiveSession("chat-1")?.projectPath, projectPath);
   } finally {

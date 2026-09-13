@@ -80,7 +80,7 @@ test("buildProjectPicker returns empty guidance without scan-driven groups", asy
   try {
     const picker = await buildProjectPicker(root, [], store);
     assert.equal(picker.groups.length, 0);
-    assert.equal(picker.emptyText, "No recent projects. Browse a directory or enter a path manually.");
+    assert.equal(picker.emptyText, "还没有最近项目，请浏览目录或手动输入路径。");
     assert.deepEqual(picker.noticeLines, []);
     assert.equal(picker.partial, false);
     assert.equal(picker.allRootsFailed, false);

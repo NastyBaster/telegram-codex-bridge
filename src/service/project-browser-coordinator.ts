@@ -615,7 +615,7 @@ export class ProjectBrowserCoordinator {
     await this.consumeBrowserSurface(
       state.chatId,
       state.messageId,
-      buildSessionCreatedText(displayName, resolved)
+      buildSessionCreatedText(displayName, resolved, language)
     );
     this.browseStates.delete(state.token);
     await this.deps.syncCurrentSessionCard?.(state.chatId, browserCopy(language).createSessionSuccessReason);

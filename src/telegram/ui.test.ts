@@ -453,7 +453,8 @@ test("buildManualPathConfirmMessage renders bold field labels and keeps the keyb
       projectName: "Project & One",
       displayName: "Project & One",
       projectPath: "/tmp/project<one>"
-    })
+    }),
+    "en"
   );
 
   assert.equal(
@@ -565,14 +566,14 @@ test("buildProjectPickerMessage renders grouped candidates with path hints", () 
         fromScan: false
       })]
     ])
-  });
+  }, "en");
 
   assert.match(rendered.text, /^Choose a project for a new session/um);
   assert.match(rendered.text, /No recent projects\. Browse a directory or enter a path manually\./u);
   assert.match(rendered.text, /Pinned/u);
   assert.match(rendered.text, /1\. Alias One/u);
   assert.match(rendered.text, /Repo\/team\/project-one/u);
-  assert.match(rendered.text, /最近 · 有历史会话/u);
+  assert.match(rendered.text, /Recent · Has session history/u);
   assert.deepEqual(rendered.replyMarkup.inline_keyboard[0]?.map((button) => button.text), ["1"]);
   assert.equal(rendered.replyMarkup.inline_keyboard.at(-1)?.[0]?.text, "Browse directory");
 });

@@ -51,25 +51,69 @@ function buildSessionProjectContextBlock(title: string, sessionName: string, pro
   ].join("\n");
 }
 
-function buildProjectBadgeLabels(candidate: ProjectCandidate): string[] {
+function projectPickerCopy(language: UiLanguage) {
+  if (language === "en") {
+    return {
+      title: "Choose a project for a new session",
+      emptyText: "No recent projects. Browse a directory or enter a path manually.",
+      browseDirectory: "Browse directory",
+      enterPathManually: "Enter path manually",
+      backToProjectList: "Back to project list",
+      chooseBrowseRoot: "Choose a root directory to browse",
+      manualPathPrompt: "Send the directory path to start a session, for example: /home/ubuntu/Repo/openclaw\nSend /cancel to return to the project list.",
+      manualPathConfirmTitle: "Create a new session in this directory?",
+      projectField: "Project: ",
+      pathField: "Path: ",
+      createSession: "Create session",
+      staleEntry: "This entry is no longer available. Use Browse directory or Enter path manually.",
+      pinned: "Pinned",
+      recent: "Recent",
+      discoveredLocally: "Discovered locally",
+      hasExistingSession: "Has session history"
+    };
+  }
+
+  return {
+    title: "选择要新建会话的项目",
+    emptyText: "还没有最近项目，请浏览目录或手动输入路径。",
+    browseDirectory: "浏览目录",
+    enterPathManually: "手动输入路径",
+    backToProjectList: "返回项目列表",
+    chooseBrowseRoot: "选择要浏览的根目录",
+    manualPathPrompt: "请发送要开始会话的目录路径，例如：/home/ubuntu/Repo/openclaw\n发送 /cancel 返回项目列表。",
+    manualPathConfirmTitle: "要在这个目录中新建会话吗？",
+    projectField: "项目：",
+    pathField: "路径：",
+    createSession: "确认新建会话",
+    staleEntry: "这个入口已下线。请使用浏览目录或手动输入路径。",
+    pinned: "已固定",
+    recent: "最近使用",
+    discoveredLocally: "本地发现",
+    hasExistingSession: "有历史会话"
+  };
+}
+
+function buildProjectBadgeLabels(candidate: ProjectCandidate, language: UiLanguage): string[] {
+  const copy = projectPickerCopy(language);
   const labels: string[] = [];
   if (candidate.group !== "recent" && candidate.isRecent) {
-    labels.push("最近");
+    labels.push(copy.recent);
   }
   if (candidate.group !== "discovered" && candidate.fromScan) {
-    labels.push("本地发现");
+    labels.push(copy.discoveredLocally);
   }
   if (candidate.hasExistingSession) {
-    labels.push("有历史会话");
+    labels.push(copy.hasExistingSession);
   }
 
   return labels;
 }
 
-export function buildProjectPickerMessage(picker: ProjectPickerResult): {
+export function buildProjectPickerMessage(picker: ProjectPickerResult, language: UiLanguage = "zh"): {
   text: string;
   replyMarkup: TelegramInlineKeyboardMarkup;
 } {
+  const copy = projectPickerCopy(language);
   const rows: TelegramInlineKeyboardMarkup["inline_keyboard"] = [];
   const visibleCandidates = picker.groups.flatMap((group) => group.candidates);
   const candidateButtons = visibleCandidates.map((candidate, index) => ({
@@ -79,23 +123,23 @@ export function buildProjectPickerMessage(picker: ProjectPickerResult): {
 
   rows.push(...chunkButtons(candidateButtons, 5));
   rows.push([
-    { text: "Browse directory", callback_data: encodeNewBrowseOpenCallback() },
-    { text: "Enter path manually", callback_data: encodePathManualCallback() }
+    { text: copy.browseDirectory, callback_data: encodeNewBrowseOpenCallback() },
+    { text: copy.enterPathManually, callback_data: encodePathManualCallback() }
   ]);
 
-  const lines = [picker.title];
+  const lines = [copy.title];
   for (const noticeLine of picker.noticeLines) {
     lines.push("", noticeLine);
   }
   if (picker.emptyText) {
-    lines.push("", picker.emptyText);
+    lines.push("", copy.emptyText);
   }
 
   let itemIndex = 1;
   for (const group of picker.groups) {
-    lines.push("", group.title);
+    lines.push("", group.key === "pinned" ? copy.pinned : copy.recent);
     for (const candidate of group.candidates) {
-      const badges = buildProjectBadgeLabels(candidate);
+      const badges = buildProjectBadgeLabels(candidate, language);
       lines.push(`${itemIndex}. ${candidate.displayName}`);
       lines.push(`   ${candidate.pathLabel}`);
       if (badges.length > 0) {
@@ -113,17 +157,19 @@ export function buildProjectPickerMessage(picker: ProjectPickerResult): {
 
 export function buildProjectBrowseRootPickerMessage(options: {
   roots: Array<{ index: number; label: string; pathLabel: string }>;
+  language?: UiLanguage;
 }): {
   text: string;
   replyMarkup: TelegramInlineKeyboardMarkup;
 } {
+  const copy = projectPickerCopy(options.language ?? "zh");
   const rows: TelegramInlineKeyboardMarkup["inline_keyboard"] = options.roots.map((root) => [{
     text: `${root.index + 1}`,
     callback_data: encodeNewBrowseRootCallback(root.index)
   }]);
-  rows.push([{ text: "Back to project list", callback_data: encodeNewBrowseBackCallback() }]);
+  rows.push([{ text: copy.backToProjectList, callback_data: encodeNewBrowseBackCallback() }]);
 
-  const lines = ["Choose a root directory to browse"];
+  const lines = [copy.chooseBrowseRoot];
   for (const root of options.roots) {
     lines.push("");
     lines.push(`${root.index + 1}. ${root.label}`);
@@ -136,48 +182,51 @@ export function buildProjectBrowseRootPickerMessage(options: {
   };
 }
 
-export function buildManualPathPrompt(): {
+export function buildManualPathPrompt(language: UiLanguage = "zh"): {
   text: string;
   replyMarkup: TelegramInlineKeyboardMarkup;
 } {
+  const copy = projectPickerCopy(language);
   return {
-    text: "Send the directory path to start a session, for example: /home/ubuntu/Repo/openclaw\nSend /cancel to return to the project list.",
+    text: copy.manualPathPrompt,
     replyMarkup: {
-      inline_keyboard: [[{ text: "Back to project list", callback_data: encodePathBackCallback() }]]
+      inline_keyboard: [[{ text: copy.backToProjectList, callback_data: encodePathBackCallback() }]]
     }
   };
 }
 
-export function buildManualPathConfirmMessage(candidate: ProjectCandidate): {
+export function buildManualPathConfirmMessage(candidate: ProjectCandidate, language: UiLanguage = "zh"): {
   text: string;
   replyMarkup: TelegramInlineKeyboardMarkup;
 } {
+  const copy = projectPickerCopy(language);
   return {
     text: [
-      "Create a new session in this directory?",
-      formatHtmlField("Project: ", candidate.displayName),
-      formatHtmlField("Path: ", candidate.projectPath)
+      copy.manualPathConfirmTitle,
+      formatHtmlField(copy.projectField, candidate.displayName),
+      formatHtmlField(copy.pathField, candidate.projectPath)
     ].join("\n"),
     replyMarkup: {
       inline_keyboard: [
-        [{ text: "Create session", callback_data: encodePathConfirmCallback(candidate.projectKey) }],
-        [{ text: "Back to project list", callback_data: encodePathBackCallback() }]
+        [{ text: copy.createSession, callback_data: encodePathConfirmCallback(candidate.projectKey) }],
+        [{ text: copy.backToProjectList, callback_data: encodePathBackCallback() }]
       ]
     }
   };
 }
 
-export function buildNoNewProjectsMessage(): {
+export function buildNoNewProjectsMessage(language: UiLanguage = "zh"): {
   text: string;
   replyMarkup: TelegramInlineKeyboardMarkup;
 } {
+  const copy = projectPickerCopy(language);
   return {
-    text: "This entry is no longer available. Use Browse directory or Enter path manually.",
+    text: copy.staleEntry,
     replyMarkup: {
       inline_keyboard: [
-        [{ text: "Browse directory", callback_data: encodeNewBrowseOpenCallback() }],
-        [{ text: "Enter path manually", callback_data: encodePathManualCallback() }],
-        [{ text: "Back to project list", callback_data: encodePathBackCallback() }]
+        [{ text: copy.browseDirectory, callback_data: encodeNewBrowseOpenCallback() }],
+        [{ text: copy.enterPathManually, callback_data: encodePathManualCallback() }],
+        [{ text: copy.backToProjectList, callback_data: encodePathBackCallback() }]
       ]
     }
   };
@@ -407,7 +456,15 @@ export function buildProjectSelectedText(projectName: string): string {
   return formatHtmlField("当前项目：", projectName);
 }
 
-export function buildSessionCreatedText(sessionName: string, projectPath: string): string {
+export function buildSessionCreatedText(sessionName: string, projectPath: string, language: UiLanguage = "zh"): string {
+  if (language === "en") {
+    return [
+      formatHtmlHeading("New session created"),
+      formatHtmlField("Session name: ", sessionName),
+      formatHtmlField("Path: ", projectPath)
+    ].join("\n");
+  }
+
   return [
     formatHtmlHeading("已新建会话"),
     formatHtmlField("会话名：", sessionName),
