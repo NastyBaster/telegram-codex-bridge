@@ -107,13 +107,24 @@ Add targeted tests for English Telegram surfaces:
 - rich input errors
 - `/compact`, `/clear`, `/rollback`
 
-Each English fixture should assert that the rendered user-facing text does not contain Han characters:
+Each English fixture should assert that bridge-owned visible copy does not contain Han characters. The visible payload includes both message text and inline keyboard labels:
 
 ```ts
-assert.doesNotMatch(renderedText, /\p{Script=Han}/u);
+const visiblePayload = [
+  message.text,
+  ...message.replyMarkup.inline_keyboard.flatMap((row) => row.map((button) => button.text))
+].join("\n");
+
+assert.doesNotMatch(stripOperatorProvidedValues(visiblePayload), /\p{Script=Han}/u);
 ```
 
-Use this as a guardrail for English mode, not as a repo-wide ban. Chinese mode and Feishu Chinese fixtures should still be allowed.
+Use this as a guardrail for English mode, not as a repo-wide ban. The scan must be scoped to bridge-owned template copy:
+
+- scan localized headings, labels, button text, hints, notices, and errors
+- preserve operator- or upstream-provided values such as project names, filenames, file previews, user text, model names, skill descriptions, plugin descriptions, and app names
+- either remove known dynamic values before the Han assertion or assert localized template fields separately
+
+Chinese mode and Feishu Chinese fixtures should still be allowed.
 
 ## Suggested PR Sequence
 
@@ -122,7 +133,7 @@ Use this as a guardrail for English mode, not as a repo-wide ban. Chinese mode a
 Scope:
 
 - session created / switched / selected confirmations
-- `/skills`, `/plugins`, `/apps` list headers and status markers
+- `/skills` list headers and status markers
 - no active session, stale button, busy-session messages
 
 Why:
@@ -161,6 +172,26 @@ Tests:
 
 - English runtime cards and inspect views have no Han characters
 - Chinese runtime card snapshots remain covered
+
+### PR 3b: Codex Command Lists And Admin Surfaces
+
+Scope:
+
+- `/plugins`
+- `/apps`
+- `/model`
+- `/mcp`
+- `/account`
+- `/review`
+- `/fork`
+- `/thread`
+- command callback expiry and unsupported-action notices for these surfaces
+
+Tests:
+
+- English command replies and inline keyboard labels have no Han characters in bridge-owned copy
+- Chinese command replies preserve the existing Chinese copy
+- user- or upstream-provided names and descriptions are not translated or rejected by the no-Han check
 
 ### PR 4: Interaction And Approval Surfaces
 
