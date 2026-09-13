@@ -326,6 +326,7 @@ export class BridgeService {
     });
     this.runtimeNoticeBroadcaster = new RuntimeNoticeBroadcaster({
       getStore: () => this.store,
+      getUiLanguage: () => this.getUiLanguage(),
       activePack: this.config.activePack,
       safeSendMessage: async (chatId, text) => this.safeSendMessage(chatId, text)
     });
