@@ -8350,6 +8350,7 @@ test("phase6 plugin commands list, install, and uninstall repo-scoped plugins", 
 
   try {
     authorizeNumericChatWithSession(store, "1");
+    store.setUiLanguage("en");
 
     (service as any).api = {
       sendMessage: async (_chatId: string, text: string, _options?: any) => {
@@ -8407,10 +8408,10 @@ test("phase6 plugin commands list, install, and uninstall repo-scoped plugins", 
     };
 
     await (service as any).routeCommand("1", "plugins", "");
-    assert.match(sent[0] ?? "", /当前会话：Project One/u);
-    assert.match(sent[0] ?? "", /当前项目：Project One/u);
-    assert.match(sent[0] ?? "", /可用插件/u);
-    assert.match(sent[0] ?? "", /\[已安装\]\[启用\] repo\.logs \| Logs/u);
+    assert.match(sent[0] ?? "", /Current session: Project One/u);
+    assert.match(sent[0] ?? "", /Current project: Project One/u);
+    assert.match(sent[0] ?? "", /Available plugins/u);
+    assert.match(sent[0] ?? "", /\[installed\]\[enabled\] repo\.logs \| Logs/u);
     assert.match(sent[0] ?? "", /repo-market\/deploy/u);
 
     await (service as any).routeCommand("1", "plugin", "install repo-market/deploy");
@@ -8418,13 +8419,13 @@ test("phase6 plugin commands list, install, and uninstall repo-scoped plugins", 
       marketplacePath: "/marketplaces/repo",
       pluginName: "deploy"
     }]);
-    assert.match(sent[1] ?? "", /已为项目「Project One」安装插件：deploy/u);
+    assert.match(sent[1] ?? "", /Installed plugin for project "Project One": deploy/u);
     assert.match(sent[1] ?? "", /Slack/u);
     assert.match(sent[1] ?? "", /https:\/\/apps\.example\/slack/u);
 
     await (service as any).routeCommand("1", "plugin", "uninstall repo.logs");
     assert.deepEqual(uninstallCalls, ["repo.logs"]);
-    assert.match(sent[2] ?? "", /已为项目「Project One」卸载插件：repo\.logs/u);
+    assert.match(sent[2] ?? "", /Uninstalled plugin for project "Project One": repo\.logs/u);
   } finally {
     await cleanup();
   }
@@ -8437,6 +8438,7 @@ test("phase6 apps mcp account and background-terminal commands surface admin sta
 
   try {
     const session = authorizeNumericChatWithSession(store, "1");
+    store.setUiLanguage("en");
     store.updateSessionThreadId(session.sessionId, "thread-1");
 
     (service as any).api = {
@@ -8516,11 +8518,12 @@ test("phase6 apps mcp account and background-terminal commands surface admin sta
     };
 
     await (service as any).routeCommand("1", "apps", "");
-    assert.match(sent[0] ?? "", /当前会话：Project One/u);
-    assert.match(sent[0] ?? "", /当前项目：Project One/u);
-    assert.match(sent[0] ?? "", /当前可用 Apps/u);
+    assert.match(sent[0] ?? "", /Current session: Project One/u);
+    assert.match(sent[0] ?? "", /Current project: Project One/u);
+    assert.match(sent[0] ?? "", /Currently available apps/u);
+    assert.match(sent[0] ?? "", /\[accessible\]\[disabled\] Slack/u);
     assert.match(sent[0] ?? "", /Slack/u);
-    assert.match(sent[0] ?? "", /Deploy Plugin/u);
+    assert.match(sent[0] ?? "", /Source plugins: Deploy Plugin/u);
 
     await (service as any).routeCommand("1", "mcp", "");
     assert.match(sent[1] ?? "", /MCP 服务器状态/u);

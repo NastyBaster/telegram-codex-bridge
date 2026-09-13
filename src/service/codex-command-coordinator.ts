@@ -15,7 +15,7 @@ import {
   formatSessionModelReasoningConfig,
   type RollbackTargetView
 } from "../telegram/ui.js";
-import type { ReasoningEffort, SessionRow } from "../types.js";
+import type { ReasoningEffort, SessionRow, UiLanguage } from "../types.js";
 import { normalizeAndTruncate, normalizeWhitespace, truncateText, summarizeTextPreview, splitStructuredInputCommand, HISTORY_TEXT_LIMIT } from "../util/text.js";
 import { asRecord, getArray, getString } from "../util/untyped.js";
 
@@ -36,6 +36,7 @@ interface ThreadMetadataUpdate {
 
 interface CodexCommandCoordinatorDeps {
   getStore: () => BridgeStateStore | null;
+  getUiLanguage: () => UiLanguage;
   ensureAppServerAvailable: () => Promise<CodexAppServerClient>;
   startFreshThreadForClear: (session: SessionRow) => Promise<Awaited<ReturnType<CodexAppServerClient["startThread"]>>>;
   fetchAllModels: () => Promise<
@@ -111,6 +112,70 @@ interface CodexCommandCoordinatorDeps {
     replyMarkup?: TelegramInlineKeyboardMarkup
   ) => Promise<unknown>;
   safeAnswerCallbackQuery: (callbackQueryId: string, text?: string) => Promise<void>;
+}
+
+function codexCommandCopy(language: UiLanguage) {
+  if (language === "en") {
+    return {
+      noActiveSession: "No active session.",
+      currentSession: "Current session",
+      currentProject: "Current project",
+      pluginsTitle: "Available plugins",
+      noPlugins: "The current project has no plugins to list.",
+      marketplace: "Marketplace",
+      installed: "[installed]",
+      notInstalled: "[not installed]",
+      enabled: "[enabled]",
+      pluginInstallUsage: "Use /plugin install <marketplace>/<plugin-name> to install a plugin.",
+      pluginUninstallUsage: "Use /plugin uninstall <plugin-id> to uninstall a plugin.",
+      example: "Example",
+      pluginInstallSyntax: "Usage: /plugin install <marketplace>/<plugin-name>",
+      pluginUninstallSyntax: "Usage: /plugin uninstall <plugin-id>",
+      pluginNotFound: "Could not find that plugin. Send /plugins first to see the currently available list.",
+      pluginInstalledPrefix: "Installed plugin for project",
+      pluginUninstalledPrefix: "Uninstalled plugin for project",
+      appsNeedAuth: "These apps may still need additional authorization:",
+      pluginUsage: "Usage: /plugin install <marketplace>/<plugin-name> or /plugin uninstall <plugin-id>",
+      appsTitle: "Currently available apps",
+      noApps: "There are no apps to list right now.",
+      accessible: "[accessible]",
+      inaccessible: "[inaccessible]",
+      appEnabled: "[enabled]",
+      appDisabled: "[disabled]",
+      sourcePlugins: "Source plugins",
+      installUrl: "Install URL"
+    };
+  }
+
+  return {
+    noActiveSession: "当前没有活动会话。",
+    currentSession: "当前会话",
+    currentProject: "当前项目",
+    pluginsTitle: "可用插件",
+    noPlugins: "当前项目没有可列出的插件。",
+    marketplace: "市场",
+    installed: "[已安装]",
+    notInstalled: "[未安装]",
+    enabled: "[启用]",
+    pluginInstallUsage: "使用 /plugin install <市场>/<插件名> 安装插件。",
+    pluginUninstallUsage: "使用 /plugin uninstall <插件ID> 卸载插件。",
+    example: "例如",
+    pluginInstallSyntax: "用法：/plugin install <市场>/<插件名>",
+    pluginUninstallSyntax: "用法：/plugin uninstall <插件ID>",
+    pluginNotFound: "找不到这个插件，请先发送 /plugins 查看当前可用列表。",
+    pluginInstalledPrefix: "已为项目",
+    pluginUninstalledPrefix: "已为项目",
+    appsNeedAuth: "这些 App 可能还需要额外授权：",
+    pluginUsage: "用法：/plugin install <市场>/<插件名> 或 /plugin uninstall <插件ID>",
+    appsTitle: "当前可用 Apps",
+    noApps: "当前没有可列出的 Apps。",
+    accessible: "[可访问]",
+    inaccessible: "[不可访问]",
+    appEnabled: "[启用]",
+    appDisabled: "[未启用]",
+    sourcePlugins: "来源插件",
+    installUrl: "安装地址"
+  };
 }
 
 export class CodexCommandCoordinator {
@@ -373,10 +438,12 @@ export class CodexCommandCoordinator {
     if (!store) {
       return;
     }
+    const language = this.deps.getUiLanguage();
+    const copy = codexCommandCopy(language);
 
     const activeSession = store.getActiveSession(chatId);
     if (!activeSession) {
-      await this.deps.safeSendMessage(chatId, "当前没有活动会话。");
+      await this.deps.safeSendMessage(chatId, copy.noActiveSession);
       return;
     }
 
@@ -385,19 +452,19 @@ export class CodexCommandCoordinator {
       cwds: [activeSession.projectPath]
     });
     if (result.marketplaces.length === 0) {
-      await this.deps.safeSendMessage(chatId, "当前项目没有可列出的插件。");
+      await this.deps.safeSendMessage(chatId, copy.noPlugins);
       return;
     }
 
-    const lines = this.buildSessionProjectContextLines(activeSession, "可用插件");
+    const lines = this.buildSessionProjectContextLines(activeSession, copy.pluginsTitle, language);
     const installExample = findFirstInstallablePlugin(result);
 
     for (const marketplace of result.marketplaces.slice(0, 5)) {
-      lines.push(`市场：${marketplace.name}`);
+      lines.push(language === "en" ? `${copy.marketplace}: ${marketplace.name}` : `${copy.marketplace}：${marketplace.name}`);
       for (const plugin of marketplace.plugins.slice(0, 8)) {
         const flags = [
-          plugin.installed ? "[已安装]" : "[未安装]",
-          plugin.enabled ? "[启用]" : ""
+          plugin.installed ? copy.installed : copy.notInstalled,
+          plugin.enabled ? copy.enabled : ""
         ].join("");
         const label = plugin.interface?.displayName ?? plugin.name;
         const description = plugin.interface?.shortDescription;
@@ -405,10 +472,10 @@ export class CodexCommandCoordinator {
       }
     }
 
-    lines.push("", "使用 /plugin install <市场>/<插件名> 安装插件。");
-    lines.push("使用 /plugin uninstall <插件ID> 卸载插件。");
+    lines.push("", copy.pluginInstallUsage);
+    lines.push(copy.pluginUninstallUsage);
     if (installExample) {
-      lines.push(`例如：/plugin install ${installExample.marketplaceName}/${installExample.pluginName}`);
+      lines.push(`${copy.example}: /plugin install ${installExample.marketplaceName}/${installExample.pluginName}`);
     }
     await this.deps.safeSendMessage(chatId, lines.join("\n"));
   }
@@ -418,10 +485,12 @@ export class CodexCommandCoordinator {
     if (!store) {
       return;
     }
+    const language = this.deps.getUiLanguage();
+    const copy = codexCommandCopy(language);
 
     const activeSession = store.getActiveSession(chatId);
     if (!activeSession) {
-      await this.deps.safeSendMessage(chatId, "当前没有活动会话。");
+      await this.deps.safeSendMessage(chatId, copy.noActiveSession);
       return;
     }
 
@@ -432,7 +501,7 @@ export class CodexCommandCoordinator {
       const target = rest.join(" ").trim();
       const parsedTarget = parsePluginInstallTarget(target);
       if (!parsedTarget) {
-        await this.deps.safeSendMessage(chatId, "用法：/plugin install <市场>/<插件名>");
+        await this.deps.safeSendMessage(chatId, copy.pluginInstallSyntax);
         return;
       }
 
@@ -442,7 +511,7 @@ export class CodexCommandCoordinator {
       const marketplace = result.marketplaces.find((entry) => entry.name === parsedTarget.marketplaceName);
       const plugin = marketplace?.plugins.find((entry) => entry.name === parsedTarget.pluginName);
       if (!marketplace || !plugin) {
-        await this.deps.safeSendMessage(chatId, "找不到这个插件，请先发送 /plugins 查看当前可用列表。");
+        await this.deps.safeSendMessage(chatId, copy.pluginNotFound);
         return;
       }
 
@@ -450,9 +519,11 @@ export class CodexCommandCoordinator {
         marketplacePath: marketplace.path,
         pluginName: plugin.name
       });
-      const lines = [`已为项目「${this.projectDisplayName(activeSession)}」安装插件：${plugin.name}`];
+      const lines = language === "en"
+        ? [`${copy.pluginInstalledPrefix} "${this.projectDisplayName(activeSession)}": ${plugin.name}`]
+        : [`${copy.pluginInstalledPrefix}「${this.projectDisplayName(activeSession)}」安装插件：${plugin.name}`];
       if (installResult.appsNeedingAuth.length > 0) {
-        lines.push("", "这些 App 可能还需要额外授权：");
+        lines.push("", copy.appsNeedAuth);
         for (const app of installResult.appsNeedingAuth.slice(0, 5)) {
           lines.push(`- ${app.name}${app.installUrl ? ` | ${app.installUrl}` : ""}`);
         }
@@ -464,16 +535,21 @@ export class CodexCommandCoordinator {
     if (subcommand === "uninstall") {
       const pluginId = rest.join(" ").trim();
       if (!pluginId) {
-        await this.deps.safeSendMessage(chatId, "用法：/plugin uninstall <插件ID>");
+        await this.deps.safeSendMessage(chatId, copy.pluginUninstallSyntax);
         return;
       }
 
       await appServer.uninstallPlugin(pluginId);
-      await this.deps.safeSendMessage(chatId, `已为项目「${this.projectDisplayName(activeSession)}」卸载插件：${pluginId}`);
+      await this.deps.safeSendMessage(
+        chatId,
+        language === "en"
+          ? `${copy.pluginUninstalledPrefix} "${this.projectDisplayName(activeSession)}": ${pluginId}`
+          : `${copy.pluginUninstalledPrefix}「${this.projectDisplayName(activeSession)}」卸载插件：${pluginId}`
+      );
       return;
     }
 
-    await this.deps.safeSendMessage(chatId, "用法：/plugin install <市场>/<插件名> 或 /plugin uninstall <插件ID>");
+    await this.deps.safeSendMessage(chatId, copy.pluginUsage);
   }
 
   async handleApps(chatId: string): Promise<void> {
@@ -481,32 +557,34 @@ export class CodexCommandCoordinator {
     if (!store) {
       return;
     }
+    const language = this.deps.getUiLanguage();
+    const copy = codexCommandCopy(language);
 
     const activeSession = store.getActiveSession(chatId);
     if (!activeSession) {
-      await this.deps.safeSendMessage(chatId, "当前没有活动会话。");
+      await this.deps.safeSendMessage(chatId, copy.noActiveSession);
       return;
     }
 
     await this.deps.ensureAppServerAvailable();
     const apps = await this.deps.fetchAllApps(activeSession.threadId ?? undefined);
     if (apps.length === 0) {
-      await this.deps.safeSendMessage(chatId, "当前没有可列出的 Apps。");
+      await this.deps.safeSendMessage(chatId, copy.noApps);
       return;
     }
 
-    const lines = this.buildSessionProjectContextLines(activeSession, "当前可用 Apps");
+    const lines = this.buildSessionProjectContextLines(activeSession, copy.appsTitle, language);
     for (const app of apps.slice(0, 12)) {
       const flags = [
-        app.isAccessible ? "[可访问]" : "[不可访问]",
-        app.isEnabled ? "[启用]" : "[未启用]"
+        app.isAccessible ? copy.accessible : copy.inaccessible,
+        app.isEnabled ? copy.appEnabled : copy.appDisabled
       ].join("");
       lines.push(`${flags} ${app.name}${app.description ? ` | ${summarizeTextPreview(app.description, 70)}` : ""}`);
       if (app.pluginDisplayNames.length > 0) {
-        lines.push(`来源插件：${app.pluginDisplayNames.join("、")}`);
+        lines.push(`${copy.sourcePlugins}${language === "en" ? ": " : "："}${app.pluginDisplayNames.join(language === "en" ? ", " : "、")}`);
       }
       if (app.installUrl) {
-        lines.push(`安装地址：${app.installUrl}`);
+        lines.push(`${copy.installUrl}${language === "en" ? ": " : "："}${app.installUrl}`);
       }
     }
 
@@ -1013,11 +1091,13 @@ export class CodexCommandCoordinator {
 
   private buildSessionProjectContextLines(
     session: Pick<SessionRow, "displayName" | "projectName" | "projectAlias">,
-    title: string
+    title: string,
+    language: UiLanguage = "zh"
   ): string[] {
+    const copy = codexCommandCopy(language);
     return [
-      `当前会话：${session.displayName}`,
-      `当前项目：${this.projectDisplayName(session)}`,
+      `${copy.currentSession}${language === "en" ? ": " : "："}${session.displayName}`,
+      `${copy.currentProject}${language === "en" ? ": " : "："}${this.projectDisplayName(session)}`,
       title
     ];
   }
