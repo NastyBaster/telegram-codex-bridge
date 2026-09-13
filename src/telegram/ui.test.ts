@@ -475,9 +475,9 @@ test("project creation and alias replies render bold field labels", () => {
   assert.equal(
     buildSessionCreatedText("Alias & One", "/tmp/project<one>"),
     [
-      "<b>已新建会话</b>",
-      "<b>会话名：</b> Alias &amp; One",
-      "<b>路径：</b> /tmp/project&lt;one&gt;"
+      "<b>New session created</b>",
+      "<b>Session name: </b> Alias &amp; One",
+      "<b>Path: </b> /tmp/project&lt;one&gt;"
     ].join("\n")
   );
   assert.equal(buildProjectAliasRenamedText("Alias & One"), "<b>当前项目别名已更新为：</b> Alias &amp; One");
