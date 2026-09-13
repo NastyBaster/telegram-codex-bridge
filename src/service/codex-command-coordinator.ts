@@ -318,7 +318,10 @@ export class CodexCommandCoordinator {
       return;
     }
 
-    const lines = this.buildSessionProjectContextLines(activeSession, "Available skills");
+    const lines = this.buildSessionProjectContextLines(activeSession, "Available skills", {
+      session: "Current session",
+      project: "Current project"
+    });
     for (const skill of entry.skills.slice(0, 20)) {
       const description = skill.interface?.shortDescription ?? skill.shortDescription ?? skill.description;
       const marker = skill.enabled ? "[enabled] " : "[disabled] ";
@@ -1013,11 +1016,12 @@ export class CodexCommandCoordinator {
 
   private buildSessionProjectContextLines(
     session: Pick<SessionRow, "displayName" | "projectName" | "projectAlias">,
-    title: string
+    title: string,
+    labels: { session: string; project: string } = { session: "当前会话", project: "当前项目" }
   ): string[] {
     return [
-      `Current session: ${session.displayName}`,
-      `Current project: ${this.projectDisplayName(session)}`,
+      `${labels.session}: ${session.displayName}`,
+      `${labels.project}: ${this.projectDisplayName(session)}`,
       title
     ];
   }

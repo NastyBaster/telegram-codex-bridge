@@ -351,8 +351,8 @@ test("CodexCommandCoordinator lists plugins and handles install and uninstall fl
     await coordinator.handlePlugin("1", "install repo-market/deploy");
     await coordinator.handlePlugin("1", "uninstall repo.logs");
 
-    assert.match(sentMessages[0] ?? "", /Current session: Project One/u);
-    assert.match(sentMessages[0] ?? "", /Current project: Project One/u);
+    assert.match(sentMessages[0] ?? "", /当前会话: Project One/u);
+    assert.match(sentMessages[0] ?? "", /当前项目: Project One/u);
     assert.match(sentMessages[0] ?? "", /可用插件/u);
     assert.match(sentMessages[0] ?? "", /\[已安装\]\[启用\] repo\.logs \| Logs/u);
     assert.match(sentMessages[0] ?? "", /repo-market\/deploy/u);
