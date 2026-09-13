@@ -8319,10 +8319,10 @@ test("skills command lists available skills and skill selection can queue prompt
     };
 
     await (service as any).routeCommand("1", "skills", "");
-    assert.match(sent[0] ?? "", /当前会话：Project One/u);
-    assert.match(sent[0] ?? "", /当前项目：Project One/u);
-    assert.match(sent[0] ?? "", /可用技能/u);
-    assert.match(sent[0] ?? "", /\[启用\] deploy \| Deploy the current project/u);
+    assert.match(sent[0] ?? "", /Current session: Project One/u);
+    assert.match(sent[0] ?? "", /Current project: Project One/u);
+    assert.match(sent[0] ?? "", /Available skills/u);
+    assert.match(sent[0] ?? "", /\[enabled\] deploy \| Deploy the current project/u);
 
     await (service as any).routeCommand("1", "skill", "deploy");
     assert.match(sent.at(-1) ?? "", /已记录skill：deploy/u);
@@ -8407,8 +8407,8 @@ test("phase6 plugin commands list, install, and uninstall repo-scoped plugins", 
     };
 
     await (service as any).routeCommand("1", "plugins", "");
-    assert.match(sent[0] ?? "", /当前会话：Project One/u);
-    assert.match(sent[0] ?? "", /当前项目：Project One/u);
+    assert.match(sent[0] ?? "", /Current session: Project One/u);
+    assert.match(sent[0] ?? "", /Current project: Project One/u);
     assert.match(sent[0] ?? "", /可用插件/u);
     assert.match(sent[0] ?? "", /\[已安装\]\[启用\] repo\.logs \| Logs/u);
     assert.match(sent[0] ?? "", /repo-market\/deploy/u);
@@ -8516,8 +8516,8 @@ test("phase6 apps mcp account and background-terminal commands surface admin sta
     };
 
     await (service as any).routeCommand("1", "apps", "");
-    assert.match(sent[0] ?? "", /当前会话：Project One/u);
-    assert.match(sent[0] ?? "", /当前项目：Project One/u);
+    assert.match(sent[0] ?? "", /Current session: Project One/u);
+    assert.match(sent[0] ?? "", /Current project: Project One/u);
     assert.match(sent[0] ?? "", /当前可用 Apps/u);
     assert.match(sent[0] ?? "", /Slack/u);
     assert.match(sent[0] ?? "", /Deploy Plugin/u);
