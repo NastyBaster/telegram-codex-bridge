@@ -38,6 +38,8 @@ import {
   buildRuntimeStatusCard,
   buildSessionsText,
   buildCollapsibleFinalAnswerView,
+  buildFinalAnswerReplyMarkup,
+  buildPlanResultReplyMarkup,
   buildCurrentSessionCardText,
   parseCallbackData,
   renderFinalAnswerHtmlChunks
@@ -1970,4 +1972,27 @@ test("buildCollapsibleFinalAnswerView prefixes every rendered page with session 
   for (const page of rendered.pages) {
     assert.match(page, /^<b>Session Alpha \/ Project One<\/b>/u);
   }
+});
+
+test("terminal result reply markups use English button labels when requested", () => {
+  const finalAnswerMarkup = buildFinalAnswerReplyMarkup({
+    answerId: "answer-1",
+    totalPages: 1,
+    collapsible: true,
+    expanded: false,
+    primaryActionConsumed: false,
+    language: "en"
+  });
+  const planMarkup = buildPlanResultReplyMarkup({
+    answerId: "plan-1",
+    totalPages: 1,
+    collapsible: true,
+    expanded: false,
+    primaryActionConsumed: false,
+    language: "en"
+  });
+
+  assert.equal(finalAnswerMarkup.inline_keyboard[0]?.[0]?.text, "Expand full answer");
+  assert.equal(planMarkup.inline_keyboard[0]?.[0]?.text, "Implement this plan");
+  assert.equal(planMarkup.inline_keyboard[1]?.[0]?.text, "Expand plan");
 });

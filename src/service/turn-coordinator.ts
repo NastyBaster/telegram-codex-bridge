@@ -1264,11 +1264,12 @@ export class TurnCoordinator {
   ): {
     inline_keyboard: Array<Array<{ text: string; callback_data: string }>>;
   } | undefined {
+    const language = this.deps.getUiLanguage();
     if (saved.kind === "plan_result") {
       return controls.collapsible
-        ? buildPlanResultReplyMarkup(controls)
+        ? buildPlanResultReplyMarkup({ ...controls, language })
         : {
-          inline_keyboard: buildPlanResultActionRows(saved.answerId)
+          inline_keyboard: buildPlanResultActionRows(saved.answerId, language)
         };
     }
 
@@ -1277,7 +1278,8 @@ export class TurnCoordinator {
     }
 
     return buildFinalAnswerReplyMarkup({
-      ...controls
+      ...controls,
+      language
     });
   }
 
@@ -1290,15 +1292,16 @@ export class TurnCoordinator {
       return createFailedSurfaceOperationResult("terminal_result_deferred_notice", "send_failed");
     }
 
-    const renderedNotice = createDeferredTerminalNoticeView(saved, this.deps.getUiLanguage());
+    const language = this.deps.getUiLanguage();
+    const renderedNotice = createDeferredTerminalNoticeView(saved, language);
     const notice = store.createRuntimeNotice({
       chatId: activeTurn.chatId,
       type: "terminal_delivery_deferred",
       message: renderedNotice.html,
       parseMode: "HTML",
       replyMarkup: saved.kind === "plan_result"
-        ? buildPlanResultReplyMarkup(renderedNotice.controls)
-        : buildFinalAnswerReplyMarkup(renderedNotice.controls),
+        ? buildPlanResultReplyMarkup({ ...renderedNotice.controls, language })
+        : buildFinalAnswerReplyMarkup({ ...renderedNotice.controls, language }),
       sessionId: activeTurn.sessionId,
       turnId: activeTurn.turnId
     });
@@ -1307,8 +1310,8 @@ export class TurnCoordinator {
       chatId: activeTurn.chatId,
       html: renderedNotice.html,
       replyMarkup: saved.kind === "plan_result"
-        ? buildPlanResultReplyMarkup(renderedNotice.controls)
-        : buildFinalAnswerReplyMarkup(renderedNotice.controls),
+        ? buildPlanResultReplyMarkup({ ...renderedNotice.controls, language })
+        : buildFinalAnswerReplyMarkup({ ...renderedNotice.controls, language }),
       requirements: {
         requiresCallbacks: true,
         requiresRichTextPreview: true

@@ -1795,6 +1795,7 @@ test("TurnCoordinator localizes deferred terminal notices with the configured UI
       sentHtmlMessages[0]?.html,
       "<i>The final answer has not been delivered yet. Tap \"Expand full answer\" to render it again.</i>"
     );
+    assert.equal(sentHtmlMessages[0]?.replyMarkup?.inline_keyboard?.[0]?.[0]?.text, "Expand full answer");
   } finally {
     await cleanup();
   }
