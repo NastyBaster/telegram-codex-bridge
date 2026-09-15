@@ -1,6 +1,7 @@
 import { classifyNotification } from "../codex/notification-classifier.js";
 import type { BridgePlatform } from "../core/domain/binding.js";
 import type { BridgeStateStore } from "../state/store.js";
+import type { UiLanguage } from "../types.js";
 
 type GlobalRuntimeNotice = Extract<
   ReturnType<typeof classifyNotification>,
@@ -17,6 +18,7 @@ type GlobalRuntimeNotice = Extract<
 
 interface RuntimeNoticeBroadcasterDeps {
   getStore: () => BridgeStateStore | null;
+  getUiLanguage: () => UiLanguage;
   activePack: BridgePlatform;
   safeSendMessage: (chatId: string, text: string) => Promise<boolean>;
 }
@@ -30,7 +32,7 @@ export class RuntimeNoticeBroadcaster {
       return;
     }
 
-    const message = formatGlobalRuntimeNotice(notification);
+    const message = formatGlobalRuntimeNotice(notification, this.deps.getUiLanguage());
     if (!message) {
       return;
     }
@@ -49,26 +51,26 @@ export class RuntimeNoticeBroadcaster {
   }
 }
 
-export function formatGlobalRuntimeNotice(notification: GlobalRuntimeNotice): string | null {
+export function formatGlobalRuntimeNotice(notification: GlobalRuntimeNotice, language: UiLanguage = "zh"): string | null {
   switch (notification.kind) {
     case "config_warning":
       return notification.summary
-        ? `Codex 配置警告：${notification.summary}${notification.detail ? `\n${notification.detail}` : ""}`
+        ? `${language === "en" ? "Codex configuration warning: " : "Codex 配置警告："}${notification.summary}${notification.detail ? `\n${notification.detail}` : ""}`
         : null;
     case "deprecation_notice":
       return notification.summary
-        ? `Codex 弃用提示：${notification.summary}${notification.detail ? `\n${notification.detail}` : ""}`
+        ? `${language === "en" ? "Codex deprecation notice: " : "Codex 弃用提示："}${notification.summary}${notification.detail ? `\n${notification.detail}` : ""}`
         : null;
     case "model_rerouted":
       if (!notification.fromModel || !notification.toModel) {
         return null;
       }
-      return `Codex 已调整模型：${notification.fromModel} -> ${notification.toModel}${notification.reason ? ` (${notification.reason})` : ""}`;
+      return `${language === "en" ? "Codex adjusted the model: " : "Codex 已调整模型："}${notification.fromModel} -> ${notification.toModel}${notification.reason ? ` (${notification.reason})` : ""}`;
     case "skills_changed":
-      return "Codex 技能列表已刷新。";
+      return language === "en" ? "Codex skill list refreshed." : "Codex 技能列表已刷新。";
     case "thread_compacted":
     case "thread_compaction_completed":
-      return "Codex 线程上下文已压缩。";
+      return language === "en" ? "Codex thread context compacted." : "Codex 线程上下文已压缩。";
     default:
       return null;
   }
