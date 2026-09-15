@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { normalizeServerRequest, SKIP_QUESTION_OPTION_VALUE } from "./normalize.js";
+import { localizeNormalizedInteraction, normalizeServerRequest, SKIP_QUESTION_OPTION_VALUE } from "./normalize.js";
 
 test("normalizeServerRequest converts command approvals into a bridge-owned approval shape", () => {
   const normalized = normalizeServerRequest("item/commandExecution/requestApproval", {
@@ -152,6 +152,27 @@ test("normalizeServerRequest preserves structured approval decision payloads", (
     },
     { key: "decline", kind: "decline", label: "拒绝", payload: { decision: "decline" } }
   ]);
+});
+
+test("English approval localization is idempotent and preserves network hosts", () => {
+  const normalized = normalizeServerRequest("item/commandExecution/requestApproval", {
+    threadId: "thread-1",
+    turnId: "turn-1",
+    itemId: "item-1",
+    command: "curl https://example.com",
+    availableDecisions: [{
+      applyNetworkPolicyAmendment: {
+        network_policy_amendment: { host: "example.com", action: "allow" }
+      }
+    }]
+  }, "en");
+
+  assert.equal(normalized?.kind, "approval");
+  const once = normalized?.decisionOptions[0]?.label;
+  const twice = normalized ? localizeNormalizedInteraction(normalized, "en") : null;
+  assert.equal(once, "Approve and save network rule (example.com)");
+  assert.equal(twice?.kind, "approval");
+  assert.equal(twice?.decisionOptions[0]?.label, once);
 });
 
 test("normalizeServerRequest converts permissions and questionnaire requests", () => {
