@@ -228,7 +228,13 @@ function localizedDecisionLabel(kind: ApprovalDecisionKind, fallback: string): s
     case "accept": return t("en", "interaction.decision.accept");
     case "acceptForSession": return t("en", "interaction.decision.acceptForSession");
     case "acceptWithExecpolicyAmendment": return t("en", "interaction.decision.acceptWithExecpolicyAmendment");
-    case "applyNetworkPolicyAmendment": return fallback.includes("（") ? fallback.replace(/^批准并保存网络规则（(.+)）$/, "Approve and save network rule ($1)") : "Approve and save network rule";
+    case "applyNetworkPolicyAmendment": {
+      if (fallback.startsWith("Approve and save network rule")) {
+        return fallback;
+      }
+      const match = fallback.match(/^批准并保存网络规则（(.+)）$/u);
+      return match ? `Approve and save network rule (${match[1]})` : "Approve and save network rule";
+    }
     case "decline": return t("en", "interaction.decision.decline");
     case "cancel": return t("en", "interaction.decision.cancel");
   }

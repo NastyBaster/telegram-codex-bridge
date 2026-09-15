@@ -13,6 +13,7 @@ import {
   encodeBrowseUpCallback
 } from "./ui-callbacks.js";
 import { escapeHtml, formatHtmlField, formatHtmlHeading } from "./ui-shared.js";
+import { t } from "../i18n/locale.js";
 
 export interface ProjectBrowserDirectoryEntryView {
   index: number;
@@ -24,33 +25,33 @@ export interface ProjectBrowserDirectoryEntryView {
 function browserCopy(language: UiLanguage) {
   return language === "en"
     ? {
-        title: "File Browser",
-        project: "Project:",
-        location: "Location:",
-        page: "Page:",
-        mode: "Mode:",
-        readonly: "Read-only browser",
-        root: "Project Root",
-        empty: "This directory is empty.",
-        previous: "Previous",
-        next: "Next",
-        up: "Up",
-        backToRoot: "Project Root",
-        refresh: "Refresh",
-        useCurrentDirectory: "Use Current Directory",
-        close: "Close",
-        previewTitle: "File Preview",
-        file: "File:",
-        path: "Path:",
-        size: "Size:",
-        modified: "Modified:",
-        previewPage: "Preview Page:",
-        previewTruncated: "Previewing only the first 48 KB.",
-        returnToDirectory: "Back to Directory",
-        infoTitle: "File Info",
-        type: "Type:",
-        binary: "Binary or unsupported preview",
-        imagePreview: "Image Preview"
+        title: t("en", "telegram.browser.title"),
+        project: t("en", "telegram.browser.project"),
+        location: t("en", "telegram.browser.location"),
+        page: t("en", "telegram.browser.page"),
+        mode: t("en", "telegram.browser.mode"),
+        readonly: t("en", "telegram.browser.readonly"),
+        root: t("en", "telegram.browser.root"),
+        empty: t("en", "telegram.browser.empty"),
+        previous: t("en", "telegram.browser.previous"),
+        next: t("en", "telegram.browser.next"),
+        up: t("en", "telegram.browser.up"),
+        backToRoot: t("en", "telegram.browser.backToRoot"),
+        refresh: t("en", "telegram.browser.refresh"),
+        useCurrentDirectory: t("en", "telegram.browser.useCurrentDirectory"),
+        close: t("en", "telegram.browser.close"),
+        previewTitle: t("en", "telegram.browser.previewTitle"),
+        file: t("en", "telegram.browser.file"),
+        path: t("en", "telegram.browser.path"),
+        size: t("en", "telegram.browser.size"),
+        modified: t("en", "telegram.browser.modified"),
+        previewPage: t("en", "telegram.browser.previewPage"),
+        previewTruncated: t("en", "telegram.browser.previewTruncated"),
+        returnToDirectory: t("en", "telegram.browser.returnToDirectory"),
+        infoTitle: t("en", "telegram.browser.infoTitle"),
+        type: t("en", "telegram.browser.type"),
+        binary: t("en", "telegram.browser.binary"),
+        imagePreview: t("en", "telegram.browser.imagePreview")
       }
     : {
         title: "文件浏览",
