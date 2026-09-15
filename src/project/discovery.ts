@@ -199,7 +199,7 @@ async function buildCandidates(homeDir: string, store: BridgeStateStore): Promis
 
 function buildProjectGroups(candidates: ProjectCandidate[]): ProjectPickerGroup[] {
   const definitions: Array<{ key: ProjectPickerGroup["key"]; title: string; limit: number }> = [
-    { key: "pinned", title: "已收藏", limit: MAX_VISIBLE_PROJECT_CANDIDATES },
+    { key: "pinned", title: "已固定", limit: MAX_VISIBLE_PROJECT_CANDIDATES },
     { key: "recent", title: "最近使用", limit: MAX_VISIBLE_RECENT_CANDIDATES }
   ];
 

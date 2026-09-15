@@ -300,7 +300,8 @@ export class SessionProjectCoordinator {
     };
     this.pickerStates.set(chatId, pickerState);
 
-    const rendered = buildProjectPickerMessage(picker);
+    const language = this.deps.getUiLanguage();
+    const rendered = buildProjectPickerMessage(picker, language);
     await this.recreateInteractivePickerMessage(chatId, pickerState, {
       text: rendered.text,
       replyMarkup: rendered.replyMarkup
@@ -342,7 +343,7 @@ export class SessionProjectCoordinator {
     await this.consumeEphemeralMessage(
       chatId,
       messageId,
-      buildSessionCreatedText(candidate.displayName, candidate.projectPath),
+      buildSessionCreatedText(candidate.displayName, candidate.projectPath, this.deps.getUiLanguage()),
       { html: true }
     );
     await this.deps.syncCurrentSessionCard(chatId, "session_created");
@@ -353,7 +354,7 @@ export class SessionProjectCoordinator {
     if (!pickerState) {
       return;
     }
-    const noNewProjects = buildNoNewProjectsMessage();
+    const noNewProjects = buildNoNewProjectsMessage(this.deps.getUiLanguage());
     await this.recreateInteractivePickerMessage(chatId, pickerState, {
       text: noNewProjects.text,
       replyMarkup: noNewProjects.replyMarkup
@@ -382,6 +383,7 @@ export class SessionProjectCoordinator {
     pickerState.inBrowseRootPicker = true;
     pickerState.awaitingManualProjectPath = false;
     const rendered = buildProjectBrowseRootPickerMessage({
+      language: this.deps.getUiLanguage(),
       roots: roots.map((path, index) => ({
         index,
         label: this.renderBrowseRootLabel(path),
@@ -424,7 +426,7 @@ export class SessionProjectCoordinator {
 
     pickerState.inBrowseRootPicker = false;
     pickerState.awaitingManualProjectPath = false;
-    const rendered = buildProjectPickerMessage(pickerState.picker);
+    const rendered = buildProjectPickerMessage(pickerState.picker, this.deps.getUiLanguage());
     await this.replaceInteractivePickerMessage(chatId, pickerState, {
       text: rendered.text,
       replyMarkup: rendered.replyMarkup
@@ -438,7 +440,7 @@ export class SessionProjectCoordinator {
     }
 
     pickerState.awaitingManualProjectPath = true;
-    const prompt = buildManualPathPrompt();
+    const prompt = buildManualPathPrompt(this.deps.getUiLanguage());
     await this.replaceInteractivePickerMessage(chatId, pickerState, {
       text: prompt.text,
       replyMarkup: prompt.replyMarkup
@@ -468,7 +470,7 @@ export class SessionProjectCoordinator {
     }
 
     pickerState.picker.projectMap.set(candidate.projectKey, candidate);
-    const confirmation = buildManualPathConfirmMessage(candidate);
+    const confirmation = buildManualPathConfirmMessage(candidate, this.deps.getUiLanguage());
     await this.sendNewestInteractivePickerMessage(chatId, pickerState, {
       text: confirmation.text,
       replyMarkup: confirmation.replyMarkup,
@@ -511,7 +513,7 @@ export class SessionProjectCoordinator {
     await this.consumeEphemeralMessage(
       chatId,
       messageId,
-      buildSessionCreatedText(candidate.displayName, candidate.projectPath),
+      buildSessionCreatedText(candidate.displayName, candidate.projectPath, this.deps.getUiLanguage()),
       { html: true }
     );
     await this.deps.syncCurrentSessionCard(chatId, "session_created");
@@ -528,7 +530,7 @@ export class SessionProjectCoordinator {
 
     pickerState.inBrowseRootPicker = false;
     pickerState.awaitingManualProjectPath = false;
-    const rendered = buildProjectPickerMessage(pickerState.picker);
+    const rendered = buildProjectPickerMessage(pickerState.picker, this.deps.getUiLanguage());
     await this.recreateInteractivePickerMessage(chatId, pickerState, {
       text: rendered.text,
       replyMarkup: rendered.replyMarkup

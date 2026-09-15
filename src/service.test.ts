@@ -5761,6 +5761,7 @@ test("manual path confirmation accepts readable directories and preserves inline
 
   try {
     authorizeChat(store, "chat-1");
+    store.setUiLanguage("en");
     const projectPath = join(paths.homeDir, "Repo", "manual-project");
     await mkdir(projectPath, { recursive: true });
 
@@ -5785,11 +5786,11 @@ test("manual path confirmation accepts readable directories and preserves inline
     await (service as any).handleManualPathInput("chat-1", projectPath);
 
     assert.equal(edited.at(-1)?.messageId, sent[0]?.messageId);
-    assert.equal(edited.at(-1)?.text, "请发送要开始会话的目录路径，例如：/home/ubuntu/Repo/openclaw\n发送 /cancel 返回项目列表。");
+    assert.equal(edited.at(-1)?.text, "Send the directory path to start a session, for example: /home/ubuntu/Repo/openclaw\nSend /cancel to return to the project list.");
     assert.equal(sent.at(-1)?.parseMode, "HTML");
-    assert.match(sent.at(-1)?.text ?? "", /<b>项目：<\/b> manual-project/u);
-    assert.match(sent.at(-1)?.text ?? "", /<b>路径：<\/b> /u);
-    assert.equal(sent.at(-1)?.replyMarkup?.inline_keyboard?.[0]?.[0]?.text, "确认新建会话");
+    assert.match(sent.at(-1)?.text ?? "", /<b>Project: <\/b> manual-project/u);
+    assert.match(sent.at(-1)?.text ?? "", /<b>Path: <\/b> /u);
+    assert.equal(sent.at(-1)?.replyMarkup?.inline_keyboard?.[0]?.[0]?.text, "Create session");
     assert.deepEqual(deleted, [sent[0]!.messageId]);
   } finally {
     await cleanup();
@@ -5804,6 +5805,7 @@ test("manual path flow replaces stale picker cards when edits fail", async () =>
 
   try {
     authorizeChat(store, "chat-1");
+    store.setUiLanguage("en");
     const projectPath = join(paths.homeDir, "Repo", "manual-fallback-project");
     await mkdir(projectPath, { recursive: true });
 
@@ -5825,7 +5827,7 @@ test("manual path flow replaces stale picker cards when edits fail", async () =>
     await (service as any).showProjectPicker("chat-1");
     const pickerMessageId = sent[0]!.messageId;
     await (service as any).enterManualPathMode("chat-1", pickerMessageId);
-    assert.equal(sent[1]?.text, "请发送要开始会话的目录路径，例如：/home/ubuntu/Repo/openclaw\n发送 /cancel 返回项目列表。");
+    assert.equal(sent[1]?.text, "Send the directory path to start a session, for example: /home/ubuntu/Repo/openclaw\nSend /cancel to return to the project list.");
     assert.deepEqual(deleted, [pickerMessageId]);
 
     await (service as any).handleManualPathInput("chat-1", projectPath);

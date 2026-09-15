@@ -43,6 +43,7 @@ function createTestPaths(root: string): BridgePaths {
 
 async function createCoordinatorContext(options?: {
   activePack?: BridgeConfig["activePack"];
+  uiLanguage?: "zh" | "en";
 }) {
   const root = await mkdtemp(join(tmpdir(), "ctb-session-project-coordinator-test-"));
   const paths = createTestPaths(root);
@@ -80,7 +81,7 @@ async function createCoordinatorContext(options?: {
       preferBridgeCommandButtons: false,
       getStore: () => store,
       getSnapshot: () => null,
-      getUiLanguage: () => "zh",
+      getUiLanguage: () => options?.uiLanguage ?? "zh",
       ensureAppServerAvailable: async () => {
         throw new Error("not used");
       },
@@ -260,7 +261,7 @@ test("handleNew deletes the previous picker and sends a fresh picker message", a
     editedMessages,
     paths,
     cleanup
-  } = await createCoordinatorContext();
+  } = await createCoordinatorContext({ uiLanguage: "en" });
 
   try {
     authorizeChat(store, "chat-1");
@@ -279,8 +280,8 @@ test("handleNew deletes the previous picker and sends a fresh picker message", a
     await coordinator.handleNew("chat-1");
 
     assert.equal(sentMessages.length, 2);
-    assert.match(sentMessages[0]?.text ?? "", /选择要新建会话的项目/u);
-    assert.match(sentMessages[1]?.text ?? "", /选择要新建会话的项目/u);
+    assert.match(sentMessages[0]?.text ?? "", /Choose a project for a new session/u);
+    assert.match(sentMessages[1]?.text ?? "", /Choose a project for a new session/u);
     assert.deepEqual(deletedMessages, [firstPickerMessageId]);
     assert.deepEqual(editedMessages, []);
     assert.equal((coordinator as any).pickerStates.get("chat-1")?.interactiveMessageId, sentMessages[1]?.messageId);
@@ -298,7 +299,7 @@ test("returnToProjectPicker deletes the current picker and sends a fresh picker 
     editedMessages,
     paths,
     cleanup
-  } = await createCoordinatorContext();
+  } = await createCoordinatorContext({ uiLanguage: "en" });
 
   try {
     authorizeChat(store, "chat-1");
@@ -315,7 +316,7 @@ test("returnToProjectPicker deletes the current picker and sends a fresh picker 
     await coordinator.returnToProjectPicker("chat-1", currentInteractiveMessageId);
 
     assert.equal(sentMessages.length, 2);
-    assert.match(sentMessages[1]?.text ?? "", /选择要新建会话的项目/u);
+    assert.match(sentMessages[1]?.text ?? "", /Choose a project for a new session/u);
     assert.deepEqual(deletedMessages, [currentInteractiveMessageId]);
     assert.equal(editedMessages[0]?.messageId, firstPickerMessageId);
     assert.equal((coordinator as any).pickerStates.get("chat-1")?.interactiveMessageId, sentMessages[1]?.messageId);

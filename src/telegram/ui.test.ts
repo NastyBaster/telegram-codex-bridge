@@ -453,18 +453,19 @@ test("buildManualPathConfirmMessage renders bold field labels and keeps the keyb
       projectName: "Project & One",
       displayName: "Project & One",
       projectPath: "/tmp/project<one>"
-    })
+    }),
+    "en"
   );
 
   assert.equal(
     rendered.text,
     [
-      "要在这个目录中新建会话吗？",
-      "<b>项目：</b> Project &amp; One",
-      "<b>路径：</b> /tmp/project&lt;one&gt;"
+      "Create a new session in this directory?",
+      "<b>Project: </b> Project &amp; One",
+      "<b>Path: </b> /tmp/project&lt;one&gt;"
     ].join("\n")
   );
-  assert.equal(rendered.replyMarkup.inline_keyboard[0]?.[0]?.text, "确认新建会话");
+  assert.equal(rendered.replyMarkup.inline_keyboard[0]?.[0]?.text, "Create session");
 });
 
 test("buildProjectSelectedText renders a bold field label", () => {
@@ -528,13 +529,13 @@ test("session management replies render explicit session and project context", (
 
 test("buildProjectPickerMessage renders grouped candidates with path hints", () => {
   const rendered = buildProjectPickerMessage({
-    title: "选择要新建会话的项目",
-    emptyText: "还没有最近项目，请浏览目录或手动输入路径。",
+    title: "Choose a project for a new session",
+    emptyText: "No recent projects. Browse a directory or enter a path manually.",
     noticeLines: [],
     groups: [
       {
         key: "pinned",
-        title: "已收藏",
+        title: "Pinned",
         candidates: [
           createProjectCandidate({
             projectKey: "project-1",
@@ -565,16 +566,16 @@ test("buildProjectPickerMessage renders grouped candidates with path hints", () 
         fromScan: false
       })]
     ])
-  });
+  }, "en");
 
-  assert.match(rendered.text, /^选择要新建会话的项目/um);
-  assert.match(rendered.text, /还没有最近项目，请浏览目录或手动输入路径。/u);
-  assert.match(rendered.text, /已收藏/u);
+  assert.match(rendered.text, /^Choose a project for a new session/um);
+  assert.match(rendered.text, /No recent projects\. Browse a directory or enter a path manually\./u);
+  assert.match(rendered.text, /Pinned/u);
   assert.match(rendered.text, /1\. Alias One/u);
   assert.match(rendered.text, /Repo\/team\/project-one/u);
-  assert.match(rendered.text, /最近 · 有历史会话/u);
+  assert.match(rendered.text, /Recent · Has session history/u);
   assert.deepEqual(rendered.replyMarkup.inline_keyboard[0]?.map((button) => button.text), ["1"]);
-  assert.equal(rendered.replyMarkup.inline_keyboard.at(-1)?.[0]?.text, "浏览目录");
+  assert.equal(rendered.replyMarkup.inline_keyboard.at(-1)?.[0]?.text, "Browse directory");
 });
 
 test("project browser directory message renders entries and browse callbacks", () => {
