@@ -262,4 +262,3 @@ Expected result:
 
 - bridge-owned labels, hints, buttons, and errors are English
 - project names, skill descriptions, model names, file paths, and user-provided text remain unchanged
-
