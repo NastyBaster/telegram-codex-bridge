@@ -131,7 +131,7 @@ export class CodexCommandCoordinator {
 
     const activeSession = store.getActiveSession(chatId);
     if (!activeSession) {
-      await this.deps.safeSendMessage(chatId, "当前没有活动会话。");
+      await this.deps.safeSendMessage(chatId, this.copy("telegram.admin.noSession"));
       return;
     }
 
@@ -310,7 +310,7 @@ export class CodexCommandCoordinator {
 
     const activeSession = store.getActiveSession(chatId);
     if (!activeSession) {
-      await this.deps.safeSendMessage(chatId, "当前没有活动会话。");
+      await this.deps.safeSendMessage(chatId, this.copy("telegram.admin.noSession"));
       return;
     }
 
@@ -346,7 +346,7 @@ export class CodexCommandCoordinator {
 
     const activeSession = store.getActiveSession(chatId);
     if (!activeSession) {
-      await this.deps.safeSendMessage(chatId, "当前没有活动会话。");
+      await this.deps.safeSendMessage(chatId, this.copy("telegram.admin.noSession"));
       return;
     }
 
@@ -383,7 +383,7 @@ export class CodexCommandCoordinator {
 
     const activeSession = store.getActiveSession(chatId);
     if (!activeSession) {
-      await this.deps.safeSendMessage(chatId, "当前没有活动会话。");
+      await this.deps.safeSendMessage(chatId, this.copy("telegram.admin.noSession"));
       return;
     }
 
@@ -428,7 +428,7 @@ export class CodexCommandCoordinator {
 
     const activeSession = store.getActiveSession(chatId);
     if (!activeSession) {
-      await this.deps.safeSendMessage(chatId, "当前没有活动会话。");
+      await this.deps.safeSendMessage(chatId, this.copy("telegram.admin.noSession"));
       return;
     }
 
@@ -491,7 +491,7 @@ export class CodexCommandCoordinator {
 
     const activeSession = store.getActiveSession(chatId);
     if (!activeSession) {
-      await this.deps.safeSendMessage(chatId, "当前没有活动会话。");
+      await this.deps.safeSendMessage(chatId, this.copy("telegram.admin.noSession"));
       return;
     }
 
@@ -612,7 +612,7 @@ export class CodexCommandCoordinator {
 
     const activeSession = store.getActiveSession(chatId);
     if (!activeSession) {
-      await this.deps.safeSendMessage(chatId, "当前没有活动会话。");
+      await this.deps.safeSendMessage(chatId, this.copy("telegram.admin.noSession"));
       return;
     }
 
@@ -873,7 +873,7 @@ export class CodexCommandCoordinator {
 
     const activeSession = store.getActiveSession(chatId);
     if (!activeSession) {
-      await this.deps.safeSendMessage(chatId, "当前没有活动会话。");
+      await this.deps.safeSendMessage(chatId, this.copy("telegram.admin.noSession"));
       return;
     }
 
