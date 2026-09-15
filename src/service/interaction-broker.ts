@@ -254,7 +254,7 @@ export class InteractionBroker {
       return;
     }
 
-    const parsedAnswer = parseQuestionAnswerInput(currentQuestion, text, "text");
+    const parsedAnswer = parseQuestionAnswerInput(currentQuestion, text, "text", this.deps.getUiLanguage?.() ?? "zh");
     if (!parsedAnswer.ok) {
       await this.deps.safeSendMessage(chatId, parsedAnswer.message);
       return;
@@ -355,7 +355,7 @@ export class InteractionBroker {
       return;
     }
 
-    const parsedAnswer = parseQuestionAnswerInput(currentQuestion, selectedOption.value, "option");
+    const parsedAnswer = parseQuestionAnswerInput(currentQuestion, selectedOption.value, "option", this.deps.getUiLanguage?.() ?? "zh");
     if (!parsedAnswer.ok) {
       await this.deps.safeAnswerCallbackQuery(callbackQueryId, parsedAnswer.message);
       return;
@@ -1048,11 +1048,12 @@ type ParsedQuestionAnswer = { ok: true; value: unknown } | { ok: false; message:
 function parseQuestionAnswerInput(
   question: NormalizedQuestion,
   rawInput: string,
-  source: "option" | "text"
+  source: "option" | "text",
+  language: UiLanguage = "zh"
 ): ParsedQuestionAnswer {
   if (rawInput === SKIP_QUESTION_OPTION_VALUE) {
     if (question.required) {
-      return { ok: false, message: "这个问题不能跳过。" };
+      return { ok: false, message: language === "en" ? "This question cannot be skipped." : "这个问题不能跳过。" };
     }
     return { ok: true, value: null };
   }
@@ -1062,14 +1063,14 @@ function parseQuestionAnswerInput(
       const trimmed = rawInput.trim();
       const value = Number(trimmed);
       if (!trimmed || !Number.isFinite(value)) {
-        return { ok: false, message: "请输入有效数字。" };
+        return { ok: false, message: language === "en" ? "Enter a valid number." : "请输入有效数字。" };
       }
       return { ok: true, value };
     }
     case "integer": {
       const trimmed = rawInput.trim();
       if (!/^[-+]?\d+$/u.test(trimmed)) {
-        return { ok: false, message: "请输入整数。" };
+        return { ok: false, message: language === "en" ? "Enter an integer." : "请输入整数。" };
       }
       return { ok: true, value: Number(trimmed) };
     }
@@ -1085,39 +1086,43 @@ function parseQuestionAnswerInput(
       if (normalized === "n" || normalized === "否") {
         return { ok: true, value: false };
       }
-      return { ok: false, message: "请输入 true/false 或 是/否。" };
+      return { ok: false, message: language === "en" ? "Enter true/false or yes/no." : "请输入 true/false 或 是/否。" };
     }
     case "string_array": {
       const values = rawInput.split(/[,\uFF0C]/u).map((entry) => entry.trim()).filter((entry) => entry.length > 0);
       if (values.length === 0) {
         return {
           ok: false,
-          message: question.required ? "请至少输入一个值。" : "请先输入至少一个值，或点击跳过。"
+          message: question.required
+            ? language === "en" ? "Enter at least one value." : "请至少输入一个值。"
+            : language === "en" ? "Enter at least one value, or click Skip." : "请先输入至少一个值，或点击跳过。"
         };
       }
       const invalid = question.allowedValues
         ? values.filter((entry) => !question.allowedValues?.includes(entry))
         : [];
       if (invalid.length > 0) {
-        return { ok: false, message: buildAllowedValuesMessage(question.allowedValues) };
+        return { ok: false, message: buildAllowedValuesMessage(question.allowedValues, language) };
       }
       return { ok: true, value: values };
     }
     case "string":
     default: {
       if (source === "text" && rawInput.trim().length === 0) {
-        return { ok: false, message: "回答不能为空。" };
+        return { ok: false, message: language === "en" ? "The answer cannot be empty." : "回答不能为空。" };
       }
       if (question.allowedValues && !(source === "text" && question.isOther) && !question.allowedValues.includes(rawInput)) {
-        return { ok: false, message: buildAllowedValuesMessage(question.allowedValues) };
+        return { ok: false, message: buildAllowedValuesMessage(question.allowedValues, language) };
       }
       return { ok: true, value: rawInput };
     }
   }
 }
 
-function buildAllowedValuesMessage(values: string[] | null): string {
-  return values && values.length > 0 ? `可用值：${values.join("、")}。` : "输入值不合法。";
+function buildAllowedValuesMessage(values: string[] | null, language: UiLanguage = "zh"): string {
+  return values && values.length > 0
+    ? language === "en" ? `Allowed values: ${values.join(", ")}.` : `可用值：${values.join("、")}。`
+    : language === "en" ? "The entered value is not valid." : "输入值不合法。";
 }
 
 function toToolQuestionnaireAnswerArray(value: unknown): string[] | null {
