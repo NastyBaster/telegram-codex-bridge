@@ -45,7 +45,7 @@ import type {
 } from "./interaction-broker.js";
 import type { EgressMessageSendResult } from "../packs/contract.js";
 import type { BridgeStateStore } from "../state/store.js";
-import type { SessionRow, ReasoningEffort } from "../types.js";
+import type { SessionRow, ReasoningEffort, UiLanguage } from "../types.js";
 import {
   createStatusCardMessageState,
   type ErrorCardState,
@@ -147,6 +147,7 @@ interface TurnCoordinatorDeps {
   paths: Pick<BridgePaths, "runtimeDir">;
   logger: Logger;
   getStore: () => BridgeStateStore | null;
+  getUiLanguage?: () => UiLanguage;
   getAppServer: () => CodexAppServerClient | null;
   ensureAppServerAvailable: () => Promise<void>;
   fetchRuntimeConfig: (cwd: string) => Promise<{
@@ -495,7 +496,8 @@ export class TurnCoordinator {
       effectiveReasoningEffortPinned: resolvedEffectiveConfig.reasoningEffortPinned,
       tracker: new ActivityTracker({
         threadId,
-        turnId
+        turnId,
+        language: this.deps.getUiLanguage?.() ?? "zh"
       }),
       debugJournal: new TurnDebugJournal({
         debugRootDir: getDebugRuntimeDir(this.deps.paths.runtimeDir),

@@ -20,6 +20,8 @@ import {
 } from "../codex/protocol-truth.js";
 import { normalizeWhitespace, truncateText, normalizeAndTruncate, normalizeNullableText } from "../util/text.js";
 import { isBlockedProgress, BLOCKED_PROGRESS_APPROVAL, BLOCKED_PROGRESS_USER_INPUT } from "../util/blocked-progress.js";
+import type { UiLanguage } from "../types.js";
+import { t } from "../i18n/locale.js";
 
 const DEFAULT_TIMELINE_LIMIT = 100;
 const STREAM_BLOCK_LIMIT = 200;
@@ -31,6 +33,7 @@ const COMMAND_OUTPUT_LINE_SNAPSHOT_LIMIT = 1024;
 interface ActivityTrackerOptions {
   threadId: string;
   turnId: string;
+  language?: UiLanguage;
   debugAvailable?: boolean;
   timelineLimit?: number;
 }
@@ -94,6 +97,7 @@ type SubagentIdentityMergeMode = "replace" | "fillMissing";
 
 export class ActivityTracker {
   private readonly timelineLimit: number;
+  private readonly language: UiLanguage;
   private readonly recentTransitions: ActivityRecord[] = [];
   private readonly recentCommandSummaries: string[] = [];
   private readonly recentFileChangeSummaries: string[] = [];
@@ -121,6 +125,7 @@ export class ActivityTracker {
     private readonly options: ActivityTrackerOptions
   ) {
     this.timelineLimit = options.timelineLimit ?? DEFAULT_TIMELINE_LIMIT;
+    this.language = options.language ?? "zh";
     this.state = {
       turnStatus: "starting",
       threadRuntimeState: null,
@@ -141,6 +146,10 @@ export class ActivityTracker {
       debugAvailable: options.debugAvailable ?? true,
       errorState: null
     };
+  }
+
+  private copy(key: Parameters<typeof t>[1], params: Record<string, string | number> = {}): string {
+    return t(this.language, key, params);
   }
 
   apply(notification: ClassifiedNotification, receivedAt = new Date().toISOString()): void {
@@ -378,7 +387,7 @@ export class ActivityTracker {
       }
 
       case "terminal_interaction": {
-        const summary = summarizeTerminalInteraction(notification.stdin);
+        const summary = summarizeTerminalInteraction(notification.stdin, this.language);
         this.terminalInteractionSummary = summary;
         this.state.latestProgress = summary;
         this.markActivity(receivedAt);
@@ -390,7 +399,7 @@ export class ActivityTracker {
 
       case "server_request_resolved":
         if (notification.requestId !== null) {
-          const summary = `交互已完成：${notification.requestId}`;
+          const summary = this.copy("activity.serverRequestResolved", { id: notification.requestId });
           this.markActivity(receivedAt);
           this.pushUniqueSummary(this.recentNoticeSummaries, summary);
           this.pushTransition(receivedAt, "progress", summary);
@@ -399,7 +408,9 @@ export class ActivityTracker {
 
       case "config_warning":
       case "deprecation_notice": {
-        const prefix = notification.kind === "config_warning" ? "配置警告" : "弃用提示";
+        const prefix = notification.kind === "config_warning"
+          ? (this.copy("activity.configWarning").split(/[：:]/u)[0] ?? "")
+          : (this.copy("activity.deprecationNotice").split(/[：:]/u)[0] ?? "");
         const summary = summarizeNotice(notification.summary, notification.detail, prefix);
         if (summary) {
           this.markActivity(receivedAt);
@@ -410,7 +421,7 @@ export class ActivityTracker {
       }
 
       case "model_rerouted": {
-        const summary = summarizeModelReroute(notification.fromModel, notification.toModel, notification.reason);
+        const summary = summarizeModelReroute(notification.fromModel ?? null, notification.toModel ?? null, notification.reason ?? null, this.language);
         if (summary) {
           this.markActivity(receivedAt);
           this.pushUniqueSummary(this.recentNoticeSummaries, summary);
@@ -422,7 +433,7 @@ export class ActivityTracker {
 
       case "skills_changed":
         this.markActivity(receivedAt);
-        this.pushUniqueSummary(this.recentNoticeSummaries, "技能列表已刷新");
+          this.pushUniqueSummary(this.recentNoticeSummaries, this.copy("activity.skillsRefreshed"));
         this.pushTransition(receivedAt, "progress", "skills changed");
         return;
 
@@ -638,7 +649,7 @@ export class ActivityTracker {
     }
 
     this.markActivity(receivedAt);
-    this.pushUniqueSummary(this.recentNoticeSummaries, "上下文已压缩");
+    this.pushUniqueSummary(this.recentNoticeSummaries, this.copy("activity.contextCompacted"));
     this.pushTransition(
       receivedAt,
       "thread",
@@ -1296,11 +1307,11 @@ function summarizeHookEntry(kind: string | null, text: string | null): string | 
   return `${prefix}: ${cleanSummary(text)}`;
 }
 
-function summarizeTerminalInteraction(stdin: string | null): string {
+function summarizeTerminalInteraction(stdin: string | null, language: UiLanguage): string {
   const preview = cleanSummary(stdin ?? "");
   return preview
-    ? `终端输入请求未转发到当前控制面：${preview}`
-    : "终端输入请求未转发到当前控制面";
+    ? t(language, "activity.terminalInput", { value: preview })
+    : t(language, "activity.terminalInputEmpty");
 }
 
 function summarizeNotice(summary: string | null, detail: string | null, prefix: string): string | null {
@@ -1316,14 +1327,15 @@ function summarizeNotice(summary: string | null, detail: string | null, prefix: 
 function summarizeModelReroute(
   fromModel: string | null,
   toModel: string | null,
-  reason: string | null
+  reason: string | null,
+  language: UiLanguage
 ): string | null {
   if (!fromModel || !toModel) {
     return null;
   }
 
-  const suffix = reason ? `（${reason}）` : "";
-  return `模型已改道：${fromModel} -> ${toModel}${suffix}`;
+  const suffix = reason ? (language === "en" ? ` (${reason})` : `（${reason}）`) : "";
+  return t(language, "activity.modelRerouted", { from: fromModel, to: toModel, suffix });
 }
 
 function mapCompletionStatus(status: string): TurnStatus {

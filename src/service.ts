@@ -455,6 +455,7 @@ export class BridgeService {
       paths: { runtimeDir: this.paths.runtimeDir },
       logger: this.loggerAdapter,
       getStore: () => this.store,
+      getUiLanguage: () => this.getUiLanguage(),
       getAppServer: () => this.appServer,
       ensureAppServerAvailable: async () => this.ensureAppServerAvailable(),
       fetchRuntimeConfig: async (cwd) => this.fetchRuntimeConfig(cwd),

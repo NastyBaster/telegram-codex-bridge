@@ -183,6 +183,46 @@ test("reduces a turn from start through progress to completion", () => {
   assert.match(inspect.recentTransitions.at(-1)?.summary ?? "", /completed/u);
 });
 
+test("English activity summaries do not leak bridge-owned Han text", () => {
+  const tracker = new ActivityTracker({
+    threadId: "thread-en",
+    turnId: "turn-en",
+    language: "en"
+  });
+
+  tracker.apply(classifyNotification("item/commandExecution/terminalInteraction", {
+    threadId: "thread-en",
+    turnId: "turn-en",
+    itemId: "cmd-en",
+    processId: "proc-en",
+    stdin: "continue?"
+  }));
+  tracker.apply(classifyNotification("serverRequest/resolved", {
+    threadId: "thread-en",
+    turnId: "turn-en",
+    requestId: "request-en"
+  }));
+  tracker.apply(classifyNotification("configWarning", {
+    summary: "config mismatch",
+    details: "line 2"
+  }));
+  tracker.apply(classifyNotification("model/rerouted", {
+    threadId: "thread-en",
+    turnId: "turn-en",
+    fromModel: "gpt-5.3-codex",
+    toModel: "gpt-5.4",
+    reason: "capacity"
+  }));
+
+  const inspect = tracker.getInspectSnapshot();
+  const visible = [
+    inspect.latestProgress,
+    inspect.terminalInteractionSummary,
+    ...inspect.recentNoticeSummaries
+  ].filter((value): value is string => Boolean(value)).join("\n");
+  assert.doesNotMatch(visible, /\p{Script=Han}/u);
+});
+
 test("accumulates fragmented command output before summarizing command progress", () => {
   const tracker = new ActivityTracker({
     threadId: "thread-fragmented-cmd",

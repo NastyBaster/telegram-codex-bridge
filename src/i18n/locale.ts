@@ -152,7 +152,17 @@ export const LOCALE_COPY = {
     "telegram.admin.appsNeedAuth": "这些 App 可能还需要额外授权：",
     "telegram.admin.pluginUninstallUsage": "用法：/plugin uninstall <插件ID>",
     "telegram.admin.pluginUninstalledSuccess": "已为项目「{project}」卸载插件：{id}",
-    "telegram.admin.pluginCommandUsage": "用法：/plugin install <市场>/<插件名> 或 /plugin uninstall <插件ID>"
+    "telegram.admin.pluginCommandUsage": "用法：/plugin install <市场>/<插件名> 或 /plugin uninstall <插件ID>",
+    "activity.serverRequestResolved": "交互已完成：{id}",
+    "activity.configWarning": "配置警告：{value}",
+    "activity.deprecationNotice": "弃用提示：{value}",
+    "activity.skillsRefreshed": "技能列表已刷新",
+    "activity.contextCompacted": "上下文已压缩",
+    "activity.terminalInput": "终端输入请求未转发到当前控制面：{value}",
+    "activity.terminalInputEmpty": "终端输入请求未转发到当前控制面",
+    "activity.modelRerouted": "模型已改道：{from} -> {to}{suffix}",
+    "activity.diffUpdated": "差异更新：{value}",
+    "activity.diffUpdatedEmpty": "差异已更新"
   },
   en: {
     "interaction.approval.commandTitle": "Codex requests command approval",
@@ -305,7 +315,17 @@ export const LOCALE_COPY = {
     "telegram.admin.appsNeedAuth": "These apps may require additional authorization:",
     "telegram.admin.pluginUninstallUsage": "Usage: /plugin uninstall <plugin ID>",
     "telegram.admin.pluginUninstalledSuccess": "Uninstalled plugin {id} from project {project}.",
-    "telegram.admin.pluginCommandUsage": "Usage: /plugin install <marketplace>/<plugin name> or /plugin uninstall <plugin ID>"
+    "telegram.admin.pluginCommandUsage": "Usage: /plugin install <marketplace>/<plugin name> or /plugin uninstall <plugin ID>",
+    "activity.serverRequestResolved": "Interaction completed: {id}",
+    "activity.configWarning": "Configuration warning: {value}",
+    "activity.deprecationNotice": "Deprecation notice: {value}",
+    "activity.skillsRefreshed": "Skills list refreshed",
+    "activity.contextCompacted": "Context compacted",
+    "activity.terminalInput": "Terminal input request was not forwarded to the current control surface: {value}",
+    "activity.terminalInputEmpty": "Terminal input request was not forwarded to the current control surface",
+    "activity.modelRerouted": "Model rerouted: {from} -> {to}{suffix}",
+    "activity.diffUpdated": "Diff updated: {value}",
+    "activity.diffUpdatedEmpty": "Diff updated"
   }
 } as const;
 
