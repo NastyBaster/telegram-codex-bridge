@@ -297,7 +297,7 @@ export class RichInputAdapter {
       await this.deps.safeSendMessage(chatId, this.copy("telegram.richInput.attachmentUnreadable", { name: attachment.filename }));
       return;
     }
-    await this.submitOrQueueRichInput(chatId, activeSession, attachmentInputs, parsed.prompt, `附件：${attachment.filename}`);
+    await this.submitOrQueueRichInput(chatId, activeSession, attachmentInputs, parsed.prompt, this.copy("telegram.richInput.attachmentLabel", { name: attachment.filename }));
   }
 
   async handleAutoAttachText(chatId: string, text: string): Promise<boolean> {
@@ -328,7 +328,7 @@ export class RichInputAdapter {
     const attachmentInputs = await this.buildAttachmentInputsForAttachments(attachments);
     if (attachmentInputs.length === 0) {
       this.pendingAutoAttachByChatId.delete(chatId);
-      await this.deps.safeSendMessage(chatId, "最近附件暂时无法自动转成 Codex 可读输入，请改用支持文本提取的文件，或稍后再试。");
+      await this.deps.safeSendMessage(chatId, this.copy("telegram.richInput.attachmentAutoAttachFailed"));
       return false;
     }
 
@@ -374,8 +374,8 @@ export class RichInputAdapter {
     await this.deps.safeSendMessage(
       chatId,
       this.pendingVoiceTaskCount > 1
-        ? `已收到语音，正在排队转写。前方还有 ${this.pendingVoiceTaskCount - 1} 条语音。`
-        : "已收到语音，正在转写。"
+        ? this.copy("telegram.richInput.voiceQueued", { count: this.pendingVoiceTaskCount - 1 })
+        : this.copy("telegram.richInput.voiceStarted")
     );
   }
 
@@ -415,7 +415,7 @@ export class RichInputAdapter {
         activeSession,
         [{ type: "localImage", path: localImagePath }],
         (message.caption ?? "").trim() || null,
-        "图片"
+        this.copy("telegram.richInput.imageLabel")
       );
     } catch {
       await this.deps.safeSendMessage(chatId, this.copy("telegram.richInput.imageUnreadable"));
@@ -477,7 +477,7 @@ export class RichInputAdapter {
         activeSession,
         imageInputs,
         event.text,
-        imageInputs.length > 1 ? `${imageInputs.length} 张图片` : "图片"
+        imageInputs.length > 1 ? this.copy("telegram.richInput.imageCount", { count: imageInputs.length }) : this.copy("telegram.richInput.imageLabel")
       );
       return;
     }
@@ -509,7 +509,7 @@ export class RichInputAdapter {
         return;
       }
 
-      await this.deps.safeSendMessage(chatId, "当前项目仍在执行，请等待完成或发送 /interrupt。", this.buildBusyTurnReplyMarkup());
+      await this.deps.safeSendMessage(chatId, this.copy("telegram.richInput.busy"), this.buildBusyTurnReplyMarkup());
       return;
     }
 
@@ -520,7 +520,7 @@ export class RichInputAdapter {
     });
     await this.deps.safeSendMessage(
       chatId,
-      `已记录${promptLabel}，请继续发送任务说明，或发送 /cancel 取消。`,
+      this.copy("telegram.richInput.continueAttachment", { label: promptLabel }),
       this.buildCancelReplyMarkup()
     );
   }
@@ -546,7 +546,7 @@ export class RichInputAdapter {
 
     const session = store.getSessionById(task.sessionId);
     if (!session || session.chatId !== task.chatId || session.archived) {
-      await this.deps.safeSendMessage(task.chatId, "这条语音对应的会话已不可用，请重新选择会话后再试。");
+      await this.deps.safeSendMessage(task.chatId, this.copy("telegram.richInput.voiceSessionUnavailable"));
       return;
     }
 
@@ -554,13 +554,13 @@ export class RichInputAdapter {
     try {
       const file = await api.getFile(task.telegramFileId);
       if (!file.file_path) {
-        await this.deps.safeSendMessage(task.chatId, "暂时无法读取这段语音，请稍后重试。");
+        await this.deps.safeSendMessage(task.chatId, this.copy("telegram.richInput.voiceUnreadable"));
         return;
       }
 
       localVoicePath = await this.cacheTelegramVoice(task.messageId, task.telegramFileId, file.file_path, file);
       if (!localVoicePath) {
-        await this.deps.safeSendMessage(task.chatId, "暂时无法读取这段语音，请稍后重试。");
+        await this.deps.safeSendMessage(task.chatId, this.copy("telegram.richInput.voiceUnreadable"));
         return;
       }
 
@@ -574,7 +574,7 @@ export class RichInputAdapter {
             sessionId: session.sessionId,
             error: `${error}`
           });
-          await this.deps.safeSendMessage(task.chatId, "OpenAI 语音转写失败，正在尝试 realtime 兜底。");
+          await this.deps.safeSendMessage(task.chatId, this.copy("telegram.richInput.voiceFallback"));
         }
       }
 
@@ -587,18 +587,18 @@ export class RichInputAdapter {
             sessionId: session.sessionId,
             error: `${error}`
           });
-          await this.deps.safeSendMessage(task.chatId, `语音输入失败：${normalizeWhitespace(`${error}`)}`);
+          await this.deps.safeSendMessage(task.chatId, this.copy("telegram.richInput.voiceFailed", { error: normalizeWhitespace(`${error}`) }));
           return;
         }
       }
 
       const currentSession = store.getSessionById(task.sessionId);
       if (!currentSession || currentSession.chatId !== task.chatId || currentSession.archived) {
-        await this.deps.safeSendMessage(task.chatId, "语音已转写，但对应会话已不可用，请重新发送。");
+        await this.deps.safeSendMessage(task.chatId, this.copy("telegram.richInput.voiceSessionChanged"));
         return;
       }
 
-      await this.deps.safeSendMessage(task.chatId, `语音转写：${transcription.transcript}`);
+      await this.deps.safeSendMessage(task.chatId, this.copy("telegram.richInput.voiceTranscript", { text: transcription.transcript }));
       await this.submitVoiceTranscript(task.chatId, currentSession, transcription.transcript);
     } catch (error) {
       await this.deps.logger.warn("voice message handling failed", {
@@ -606,7 +606,7 @@ export class RichInputAdapter {
         sessionId: session.sessionId,
         error: `${error}`
       });
-      await this.deps.safeSendMessage(task.chatId, "暂时无法处理这段语音，请稍后重试。");
+      await this.deps.safeSendMessage(task.chatId, this.copy("telegram.richInput.voiceProcessingFailed"));
     } finally {
       if (localVoicePath) {
         await rm(localVoicePath, { force: true }).catch(() => {});
@@ -634,7 +634,7 @@ export class RichInputAdapter {
             turnId: steerAvailability.turnId,
             error: `${error}`
           });
-          await this.deps.safeSendMessage(chatId, "Codex 服务暂时不可用，请稍后重试。");
+          await this.deps.safeSendMessage(chatId, this.copy("telegram.richInput.codexUnavailable"));
         }
         return;
       }
@@ -644,7 +644,7 @@ export class RichInputAdapter {
         return;
       }
 
-      await this.deps.safeSendMessage(chatId, "当前项目仍在执行，请等待完成或发送 /interrupt。", this.buildBusyTurnReplyMarkup());
+      await this.deps.safeSendMessage(chatId, this.copy("telegram.richInput.busy"), this.buildBusyTurnReplyMarkup());
       return;
     }
 
@@ -674,7 +674,7 @@ export class RichInputAdapter {
             turnId: steerAvailability.turnId,
             error: `${error}`
           });
-          await this.deps.safeSendMessage(chatId, "Codex 服务暂时不可用，请稍后重试。");
+          await this.deps.safeSendMessage(chatId, this.copy("telegram.richInput.codexUnavailable"));
           return false;
         }
         return true;
@@ -685,7 +685,7 @@ export class RichInputAdapter {
         return false;
       }
 
-      await this.deps.safeSendMessage(chatId, "当前项目仍在执行，请等待完成或发送 /interrupt。", this.buildBusyTurnReplyMarkup());
+      await this.deps.safeSendMessage(chatId, this.copy("telegram.richInput.busy"), this.buildBusyTurnReplyMarkup());
       return false;
     }
 
@@ -713,7 +713,7 @@ export class RichInputAdapter {
             turnId: steerAvailability.turnId,
             error: `${error}`
           });
-          await this.deps.safeSendMessage(chatId, "Codex 服务暂时不可用，请稍后重试。");
+          await this.deps.safeSendMessage(chatId, this.copy("telegram.richInput.codexUnavailable"));
           return false;
         }
         return true;
@@ -724,7 +724,7 @@ export class RichInputAdapter {
         return false;
       }
 
-      await this.deps.safeSendMessage(chatId, "当前项目仍在执行，请等待完成或发送 /interrupt。", this.buildBusyTurnReplyMarkup());
+      await this.deps.safeSendMessage(chatId, this.copy("telegram.richInput.busy"), this.buildBusyTurnReplyMarkup());
       return false;
     }
 
@@ -772,11 +772,11 @@ export class RichInputAdapter {
   ): Promise<VoiceTranscriptionResult> {
     const realtimeModelId = await this.getRealtimeVoiceModelId();
     if (!realtimeModelId) {
-      throw new Error("当前 Codex 模型不支持 realtime 音频输入。");
+      throw new Error(this.copy("telegram.richInput.realtimeUnsupported"));
     }
 
     if (!await commandExists(this.deps.config.voiceFfmpegBin)) {
-      throw new Error(`系统里找不到 ffmpeg：${this.deps.config.voiceFfmpegBin}`);
+      throw new Error(this.copy("telegram.richInput.ffmpegMissing", { path: this.deps.config.voiceFfmpegBin }));
     }
 
     const appServer = await this.deps.ensureAppServerAvailable();
@@ -1008,8 +1008,8 @@ export class RichInputAdapter {
     await this.deps.safeSendMessage(
       chatId,
       registered.length === 1
-        ? `已接收文件附件：\n${summary}\n下一条消息会自动带上最近附件；也可用 /attach <附件ID> :: 任务说明；发送 /cancel 可取消。`
-        : `已接收 ${registered.length} 个文件附件：\n${summary}\n下一条消息会自动带上最近附件；也可用 /attach <附件ID> :: 任务说明；发送 /cancel 可取消。`,
+        ? this.copy("telegram.richInput.attachmentsReceivedOne", { summary })
+        : this.copy("telegram.richInput.attachmentsReceivedMany", { count: registered.length, summary }),
       this.buildCancelReplyMarkup()
     );
     return registered;
@@ -1053,7 +1053,7 @@ export class RichInputAdapter {
       const name = asset.descriptor.filename ?? asset.descriptor.kind;
       return `- ${name}: ${asset.failureReason ?? "unknown"}`;
     }).join("\n");
-    await this.deps.safeSendMessage(chatId, `以下附件未能完成解析：\n${lines}`);
+    await this.deps.safeSendMessage(chatId, this.copy("telegram.richInput.attachmentsUnparsed", { lines }));
   }
 
   private findAttachment(sessionId: string, attachmentId: string): RegisteredAttachment | null {
@@ -1097,8 +1097,8 @@ export class RichInputAdapter {
 
     const truncated = truncateText(normalized, ATTACHMENT_CONTENT_CHAR_LIMIT);
     return truncated === normalized
-      ? `以下是附件《${attachment.filename}》的提取内容：\n\n${truncated}`
-      : `以下是附件《${attachment.filename}》的提取内容（已截断）：\n\n${truncated}`;
+      ? this.copy("telegram.richInput.attachmentExtracted", { name: attachment.filename, text: truncated })
+      : this.copy("telegram.richInput.attachmentExtractedTruncated", { name: attachment.filename, text: truncated });
   }
 
   private async extractPdfText(filePath: string): Promise<string | null> {
