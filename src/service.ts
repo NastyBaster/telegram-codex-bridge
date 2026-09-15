@@ -582,6 +582,7 @@ export class BridgeService {
     });
     this.codexCommandCoordinator = new CodexCommandCoordinator({
       getStore: () => this.store,
+      getUiLanguage: () => this.getUiLanguage(),
       ensureAppServerAvailable: async () => this.requireAppServer(),
       startFreshThreadForClear: async (session) => {
         const appServer = await this.requireAppServer();

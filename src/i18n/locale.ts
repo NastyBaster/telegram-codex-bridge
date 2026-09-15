@@ -90,7 +90,22 @@ export const LOCALE_COPY = {
     "telegram.richInput.attachmentUnreadable": "当前无法把附件 {name} 转成 Codex 可读输入。",
     "telegram.richInput.voiceDisabled": "未启用语音输入。",
     "telegram.richInput.selectProject": "请先发送 /new 选择项目。",
-    "telegram.richInput.imageUnreadable": "暂时无法读取这张图片，请稍后重试。"
+    "telegram.richInput.imageUnreadable": "暂时无法读取这张图片，请稍后重试。",
+    "telegram.admin.noSession": "当前没有活动会话。",
+    "telegram.admin.mcpEmpty": "当前没有可列出的 MCP 服务器。",
+    "telegram.admin.mcpReloaded": "已重新加载 MCP 服务器配置。",
+    "telegram.admin.mcpLoginUsage": "用法：/mcp login <名称>",
+    "telegram.admin.mcpLoginUnavailable": "当前无法生成这个 MCP 服务器的登录链接。",
+    "telegram.admin.mcpUsage": "用法：/mcp、/mcp reload 或 /mcp login <名称>",
+    "telegram.admin.accountTitle": "当前 Codex 账号",
+    "telegram.admin.notLoggedIn": "账号：未登录",
+    "telegram.admin.apiKey": "类型：API Key",
+    "telegram.admin.chatGpt": "类型：ChatGPT",
+    "telegram.admin.requiresAuth": "需要 OpenAI Auth：{value}",
+    "telegram.admin.reviewCreated": "已创建审查会话：{name}",
+    "telegram.admin.forkCreated": "已创建分叉会话：{name}",
+    "telegram.admin.threadNameUsage": "用法：/thread name <名称>",
+    "telegram.admin.threadNameUpdated": "会话标题已更新为：{name}"
   },
   en: {
     "interaction.approval.commandTitle": "Codex requests command approval",
@@ -181,7 +196,22 @@ export const LOCALE_COPY = {
     "telegram.richInput.attachmentUnreadable": "The attachment {name} cannot currently be converted into Codex-readable input.",
     "telegram.richInput.voiceDisabled": "Voice input is not enabled.",
     "telegram.richInput.selectProject": "Send /new first to choose a project.",
-    "telegram.richInput.imageUnreadable": "The image could not be read right now. Please try again later."
+    "telegram.richInput.imageUnreadable": "The image could not be read right now. Please try again later.",
+    "telegram.admin.noSession": "There is no active session.",
+    "telegram.admin.mcpEmpty": "No MCP servers are available.",
+    "telegram.admin.mcpReloaded": "MCP server configuration reloaded.",
+    "telegram.admin.mcpLoginUsage": "Usage: /mcp login <name>",
+    "telegram.admin.mcpLoginUnavailable": "The MCP server login link cannot be generated right now.",
+    "telegram.admin.mcpUsage": "Usage: /mcp, /mcp reload, or /mcp login <name>",
+    "telegram.admin.accountTitle": "Current Codex account",
+    "telegram.admin.notLoggedIn": "Account: not logged in",
+    "telegram.admin.apiKey": "Type: API key",
+    "telegram.admin.chatGpt": "Type: ChatGPT",
+    "telegram.admin.requiresAuth": "OpenAI Auth required: {value}",
+    "telegram.admin.reviewCreated": "Review session created: {name}",
+    "telegram.admin.forkCreated": "Forked session created: {name}",
+    "telegram.admin.threadNameUsage": "Usage: /thread name <name>",
+    "telegram.admin.threadNameUpdated": "Session title updated to: {name}"
   }
 } as const;
 

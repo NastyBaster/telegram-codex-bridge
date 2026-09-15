@@ -16,6 +16,8 @@ import {
   type RollbackTargetView
 } from "../telegram/ui.js";
 import type { ReasoningEffort, SessionRow } from "../types.js";
+import type { UiLanguage } from "../types.js";
+import { t, type LocaleKey } from "../i18n/locale.js";
 import { normalizeAndTruncate, normalizeWhitespace, truncateText, summarizeTextPreview, splitStructuredInputCommand, HISTORY_TEXT_LIMIT } from "../util/text.js";
 import { asRecord, getArray, getString } from "../util/untyped.js";
 
@@ -36,6 +38,7 @@ interface ThreadMetadataUpdate {
 
 interface CodexCommandCoordinatorDeps {
   getStore: () => BridgeStateStore | null;
+  getUiLanguage?: () => UiLanguage;
   ensureAppServerAvailable: () => Promise<CodexAppServerClient>;
   startFreshThreadForClear: (session: SessionRow) => Promise<Awaited<ReturnType<CodexAppServerClient["startThread"]>>>;
   fetchAllModels: () => Promise<
@@ -115,6 +118,10 @@ interface CodexCommandCoordinatorDeps {
 
 export class CodexCommandCoordinator {
   constructor(private readonly deps: CodexCommandCoordinatorDeps) {}
+
+  private copy(key: LocaleKey, params: Record<string, string | number> = {}): string {
+    return t(this.deps.getUiLanguage?.() ?? "zh", key, params);
+  }
 
   async handleModel(chatId: string, args: string): Promise<void> {
     const store = this.deps.getStore();
@@ -521,7 +528,7 @@ export class CodexCommandCoordinator {
     if (!trimmed) {
       const statuses = await this.deps.fetchAllMcpServerStatuses();
       if (statuses.length === 0) {
-        await this.deps.safeSendMessage(chatId, "当前没有可列出的 MCP 服务器。");
+      await this.deps.safeSendMessage(chatId, this.copy("telegram.admin.mcpEmpty"));
         return;
       }
 
@@ -538,20 +545,20 @@ export class CodexCommandCoordinator {
 
     if (subcommand === "reload") {
       await appServer.reloadMcpServers();
-      await this.deps.safeSendMessage(chatId, "已重新加载 MCP 服务器配置。");
+      await this.deps.safeSendMessage(chatId, this.copy("telegram.admin.mcpReloaded"));
       return;
     }
 
     if (subcommand === "login") {
       const serverName = rest.join(" ").trim();
       if (!serverName) {
-        await this.deps.safeSendMessage(chatId, "用法：/mcp login <名称>");
+        await this.deps.safeSendMessage(chatId, this.copy("telegram.admin.mcpLoginUsage"));
         return;
       }
 
       const result = await appServer.loginToMcpServer({ name: serverName });
       if (!result.authorizationUrl) {
-        await this.deps.safeSendMessage(chatId, "当前无法生成这个 MCP 服务器的登录链接。");
+        await this.deps.safeSendMessage(chatId, this.copy("telegram.admin.mcpLoginUnavailable"));
         return;
       }
 
@@ -562,7 +569,7 @@ export class CodexCommandCoordinator {
       return;
     }
 
-    await this.deps.safeSendMessage(chatId, "用法：/mcp、/mcp reload 或 /mcp login <名称>");
+    await this.deps.safeSendMessage(chatId, this.copy("telegram.admin.mcpUsage"));
   }
 
   async handleAccount(chatId: string): Promise<void> {
@@ -576,17 +583,18 @@ export class CodexCommandCoordinator {
       rateLimitsResult = null;
     }
 
-    const lines = ["当前 Codex 账号"];
+    const lines = [this.copy("telegram.admin.accountTitle")];
     if (!accountResult.account) {
-      lines.push("账号：未登录");
+      lines.push(this.copy("telegram.admin.notLoggedIn"));
     } else if (accountResult.account.type === "apiKey") {
-      lines.push("类型：API Key");
+      lines.push(this.copy("telegram.admin.apiKey"));
     } else {
-      lines.push("类型：ChatGPT");
+      lines.push(this.copy("telegram.admin.chatGpt"));
       lines.push(`邮箱：${accountResult.account.email}`);
       lines.push(`计划：${accountResult.account.planType}`);
     }
-    lines.push(`需要 OpenAI Auth：${accountResult.requiresOpenaiAuth ? "是" : "否"}`);
+    const language = this.deps.getUiLanguage?.() ?? "zh";
+    lines.push(this.copy("telegram.admin.requiresAuth", { value: accountResult.requiresOpenaiAuth ? (language === "en" ? "yes" : "是") : (language === "en" ? "no" : "否") }));
 
     const rateSummary = formatRateLimitSummary(rateLimitsResult?.rateLimits ?? null);
     if (rateSummary) {
@@ -654,7 +662,7 @@ export class CodexCommandCoordinator {
       });
       store.updateSessionThreadId(reviewSession.sessionId, result.reviewThreadId);
       reviewSession = store.getSessionById(reviewSession.sessionId) ?? reviewSession;
-      await this.deps.safeSendMessage(chatId, `已创建审查会话：${reviewSession.displayName}`);
+      await this.deps.safeSendMessage(chatId, this.copy("telegram.admin.reviewCreated", { name: reviewSession.displayName }));
     }
 
     await this.deps.beginActiveTurn(chatId, reviewSession, result.reviewThreadId, result.turn.id, result.turn.status, {
@@ -700,7 +708,7 @@ export class CodexCommandCoordinator {
       lastTurnId: lastForkTurn?.id ?? activeSession.lastTurnId,
       lastTurnStatus: lastForkTurn?.status ?? activeSession.lastTurnStatus
     });
-    await this.deps.safeSendMessage(chatId, `已创建分叉会话：${created.displayName}`);
+    await this.deps.safeSendMessage(chatId, this.copy("telegram.admin.forkCreated", { name: created.displayName }));
   }
 
   async handleRollback(chatId: string, args: string): Promise<void> {
@@ -948,13 +956,13 @@ export class CodexCommandCoordinator {
     if (subcommand === "name") {
       const nextName = rest.join(" ").trim();
       if (!nextName) {
-        await this.deps.safeSendMessage(chatId, "用法：/thread name <名称>");
+        await this.deps.safeSendMessage(chatId, this.copy("telegram.admin.threadNameUsage"));
         return;
       }
 
       await appServer.setThreadName(activeSession.threadId, nextName);
       store.renameSession(activeSession.sessionId, nextName);
-      await this.deps.safeSendMessage(chatId, `会话标题已更新为：${nextName}`);
+      await this.deps.safeSendMessage(chatId, this.copy("telegram.admin.threadNameUpdated", { name: nextName }));
       return;
     }
 
