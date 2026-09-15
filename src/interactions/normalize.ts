@@ -237,7 +237,7 @@ function localizedDecisionLabel(kind: ApprovalDecisionKind, fallback: string): s
 function localizeInteractionDetail(detail: string | null): string | null {
   return detail === null
     ? null
-    : detail.replaceAll("目录：", "Directory: ").replaceAll("授权根目录：", "Grant root: ");
+    : detail.replaceAll("授权根目录：", "Grant root: ").replaceAll("目录：", "Directory: ");
 }
 
 function normalizeCommandApproval(
