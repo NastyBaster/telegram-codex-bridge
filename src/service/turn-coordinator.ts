@@ -45,7 +45,7 @@ import type {
 } from "./interaction-broker.js";
 import type { EgressMessageSendResult } from "../packs/contract.js";
 import type { BridgeStateStore } from "../state/store.js";
-import type { SessionRow, ReasoningEffort } from "../types.js";
+import type { SessionRow, ReasoningEffort, UiLanguage } from "../types.js";
 import {
   createStatusCardMessageState,
   type ErrorCardState,
@@ -148,6 +148,7 @@ interface TurnCoordinatorDeps {
   logger: Logger;
   getStore: () => BridgeStateStore | null;
   getAppServer: () => CodexAppServerClient | null;
+  getUiLanguage: () => UiLanguage;
   ensureAppServerAvailable: () => Promise<void>;
   fetchRuntimeConfig: (cwd: string) => Promise<{
     model: string | null;
@@ -1263,11 +1264,12 @@ export class TurnCoordinator {
   ): {
     inline_keyboard: Array<Array<{ text: string; callback_data: string }>>;
   } | undefined {
+    const language = this.deps.getUiLanguage();
     if (saved.kind === "plan_result") {
       return controls.collapsible
-        ? buildPlanResultReplyMarkup(controls)
+        ? buildPlanResultReplyMarkup({ ...controls, language })
         : {
-          inline_keyboard: buildPlanResultActionRows(saved.answerId)
+          inline_keyboard: buildPlanResultActionRows(saved.answerId, language)
         };
     }
 
@@ -1276,7 +1278,8 @@ export class TurnCoordinator {
     }
 
     return buildFinalAnswerReplyMarkup({
-      ...controls
+      ...controls,
+      language
     });
   }
 
@@ -1289,15 +1292,16 @@ export class TurnCoordinator {
       return createFailedSurfaceOperationResult("terminal_result_deferred_notice", "send_failed");
     }
 
-    const renderedNotice = createDeferredTerminalNoticeView(saved);
+    const language = this.deps.getUiLanguage();
+    const renderedNotice = createDeferredTerminalNoticeView(saved, language);
     const notice = store.createRuntimeNotice({
       chatId: activeTurn.chatId,
       type: "terminal_delivery_deferred",
       message: renderedNotice.html,
       parseMode: "HTML",
       replyMarkup: saved.kind === "plan_result"
-        ? buildPlanResultReplyMarkup(renderedNotice.controls)
-        : buildFinalAnswerReplyMarkup(renderedNotice.controls),
+        ? buildPlanResultReplyMarkup({ ...renderedNotice.controls, language })
+        : buildFinalAnswerReplyMarkup({ ...renderedNotice.controls, language }),
       sessionId: activeTurn.sessionId,
       turnId: activeTurn.turnId
     });
@@ -1306,8 +1310,8 @@ export class TurnCoordinator {
       chatId: activeTurn.chatId,
       html: renderedNotice.html,
       replyMarkup: saved.kind === "plan_result"
-        ? buildPlanResultReplyMarkup(renderedNotice.controls)
-        : buildFinalAnswerReplyMarkup(renderedNotice.controls),
+        ? buildPlanResultReplyMarkup({ ...renderedNotice.controls, language })
+        : buildFinalAnswerReplyMarkup({ ...renderedNotice.controls, language }),
       requirements: {
         requiresCallbacks: true,
         requiresRichTextPreview: true

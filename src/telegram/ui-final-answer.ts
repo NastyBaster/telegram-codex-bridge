@@ -1,5 +1,6 @@
 import type { StreamBlock, StreamSnapshot } from "../activity/types.js";
 import type { RecentOutputEntryView, TerminalResultControlView } from "../core/interaction-model/terminal.js";
+import type { UiLanguage } from "../types.js";
 import { truncateText } from "../util/text.js";
 import type { TelegramInlineKeyboardMarkup } from "./api.js";
 import {
@@ -139,14 +140,16 @@ export function buildCollapsibleFinalAnswerView(
 export function buildFinalAnswerReplyMarkup(
   options: TerminalResultControlView & {
     extraRows?: Array<Array<{ text: string; callback_data: string }>>;
+    language?: UiLanguage;
   }
 ): TelegramInlineKeyboardMarkup {
+  const copy = finalAnswerButtonCopy(options.language ?? "zh");
   if (!options.expanded) {
     return {
       inline_keyboard: [
         ...(options.extraRows ?? []),
         [{
-          text: "展开全文",
+          text: copy.expand,
           callback_data: encodeFinalAnswerOpenCallback(options.answerId)
         }]
       ]
@@ -156,20 +159,20 @@ export function buildFinalAnswerReplyMarkup(
   const buttons: Array<{ text: string; callback_data: string }> = [];
   if (options.totalPages > 1 && options.currentPage && options.currentPage > 1) {
     buttons.push({
-      text: "上一页",
+      text: copy.previous,
       callback_data: encodeFinalAnswerPageCallback(options.answerId, options.currentPage - 1)
     });
   }
 
   if (options.totalPages > 1 && options.currentPage && options.currentPage < options.totalPages) {
     buttons.push({
-      text: "下一页",
+      text: copy.next,
       callback_data: encodeFinalAnswerPageCallback(options.answerId, options.currentPage + 1)
     });
   }
 
   buttons.push({
-    text: "收起",
+    text: copy.collapse,
     callback_data: encodeFinalAnswerCloseCallback(options.answerId)
   });
 
@@ -181,9 +184,12 @@ export function buildFinalAnswerReplyMarkup(
   };
 }
 
-export function buildPlanResultActionRows(answerId: string): Array<Array<{ text: string; callback_data: string }>> {
+export function buildPlanResultActionRows(
+  answerId: string,
+  language: UiLanguage = "zh"
+): Array<Array<{ text: string; callback_data: string }>> {
   return [[
-    { text: "实施这个计划", callback_data: encodePlanImplementCallback(answerId) }
+    { text: planResultButtonCopy(language).implement, callback_data: encodePlanImplementCallback(answerId) }
   ]];
 }
 
@@ -245,14 +251,20 @@ export function buildRecentOutputReplyMarkup(
   };
 }
 
-export function buildPlanResultReplyMarkup(options: TerminalResultControlView): TelegramInlineKeyboardMarkup {
-  const actionRows = options.primaryActionConsumed ? [] : buildPlanResultActionRows(options.answerId);
+export function buildPlanResultReplyMarkup(
+  options: TerminalResultControlView & {
+    language?: UiLanguage;
+  }
+): TelegramInlineKeyboardMarkup {
+  const language = options.language ?? "zh";
+  const copy = planResultButtonCopy(language);
+  const actionRows = options.primaryActionConsumed ? [] : buildPlanResultActionRows(options.answerId, language);
   if (!options.expanded) {
     return {
       inline_keyboard: [
         ...actionRows,
         [{
-          text: "展开方案",
+          text: copy.expand,
           callback_data: encodePlanResultOpenCallback(options.answerId)
         }]
       ]
@@ -262,18 +274,18 @@ export function buildPlanResultReplyMarkup(options: TerminalResultControlView): 
   const buttons: Array<{ text: string; callback_data: string }> = [];
   if (options.totalPages > 1 && options.currentPage && options.currentPage > 1) {
     buttons.push({
-      text: "上一页",
+      text: copy.previous,
       callback_data: encodePlanResultPageCallback(options.answerId, options.currentPage - 1)
     });
   }
   if (options.totalPages > 1 && options.currentPage && options.currentPage < options.totalPages) {
     buttons.push({
-      text: "下一页",
+      text: copy.next,
       callback_data: encodePlanResultPageCallback(options.answerId, options.currentPage + 1)
     });
   }
   buttons.push({
-    text: "收起方案",
+    text: copy.collapse,
     callback_data: encodePlanResultCloseCallback(options.answerId)
   });
 
@@ -282,6 +294,55 @@ export function buildPlanResultReplyMarkup(options: TerminalResultControlView): 
       ...actionRows,
       buttons
     ]
+  };
+}
+
+function finalAnswerButtonCopy(language: UiLanguage): {
+  expand: string;
+  previous: string;
+  next: string;
+  collapse: string;
+} {
+  if (language === "en") {
+    return {
+      expand: "Expand full answer",
+      previous: "Previous page",
+      next: "Next page",
+      collapse: "Collapse"
+    };
+  }
+
+  return {
+    expand: "展开全文",
+    previous: "上一页",
+    next: "下一页",
+    collapse: "收起"
+  };
+}
+
+function planResultButtonCopy(language: UiLanguage): {
+  implement: string;
+  expand: string;
+  previous: string;
+  next: string;
+  collapse: string;
+} {
+  if (language === "en") {
+    return {
+      implement: "Implement this plan",
+      expand: "Expand plan",
+      previous: "Previous page",
+      next: "Next page",
+      collapse: "Collapse plan"
+    };
+  }
+
+  return {
+    implement: "实施这个计划",
+    expand: "展开方案",
+    previous: "上一页",
+    next: "下一页",
+    collapse: "收起方案"
   };
 }
 
