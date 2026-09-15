@@ -72,6 +72,20 @@ test("normalizeServerRequest localizes bridge-owned interaction copy in English"
   assert.match(normalized?.detail ?? "", /Directory: C:\\workspace/u);
 });
 
+test("normalizeServerRequest preserves upstream detail text while localizing generated labels", () => {
+  const normalized = normalizeServerRequest("item/commandExecution/requestApproval", {
+    threadId: "thread-en-detail",
+    turnId: "turn-en-detail",
+    itemId: "item-en-detail",
+    command: "npm test",
+    reason: "Upstream reason mentions 目录： literally",
+    cwd: "C:\\workspace"
+  }, "en");
+
+  assert.equal(normalized?.kind, "approval");
+  assert.equal(normalized?.kind === "approval" ? normalized.detail : null, "Upstream reason mentions 目录： literally\nDirectory: C:\\workspace");
+});
+
 test("normalizeServerRequest rebuilds MCP form prompts in English", () => {
   const interaction = normalizeServerRequest("mcpServer/elicitation/request", {
     threadId: "thread-1",
@@ -88,7 +102,8 @@ test("normalizeServerRequest rebuilds MCP form prompts in English", () => {
   }, "en");
 
   assert.equal(interaction?.kind, "questionnaire");
-  assert.equal(interaction?.title, "Codex needs more information");
+  assert.equal(interaction?.title, "MCP needs more information");
+  assert.equal(interaction?.serverName, "deploy");
   assert.equal(interaction?.questions[0]?.question, "Provide Confirm deployment.\nChoose yes or no.\nThis field is required.");
   assert.deepEqual(interaction?.questions[0]?.options?.map((option) => option.label), ["Yes", "No"]);
 });

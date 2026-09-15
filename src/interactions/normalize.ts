@@ -103,13 +103,13 @@ export function normalizeServerRequest(method: string, params: unknown, language
   const interaction = (() => {
     switch (method) {
     case "item/commandExecution/requestApproval":
-      return normalizeCommandApproval(method, params);
+      return normalizeCommandApproval(method, params, language);
     case "item/fileChange/requestApproval":
       return normalizeFileChangeApproval(method, params);
     case "applyPatchApproval":
       return normalizeLegacyPatchApproval(method, params, language);
     case "execCommandApproval":
-      return normalizeLegacyExecApproval(method, params);
+      return normalizeLegacyExecApproval(method, params, language);
     case "item/permissions/requestApproval":
       return normalizePermissionsApproval(method, params);
     case "item/tool/requestUserInput":
@@ -145,7 +145,7 @@ export function localizeNormalizedInteraction(
         ...interaction,
         title: localizedApprovalTitle(interaction.method),
         subtitle: localizedApprovalSubtitle(interaction.method),
-        detail: localizeInteractionDetail(interaction.detail),
+        detail: interaction.detail,
         ...(localizedOptions ? { decisionOptions: localizedOptions } : {})
       };
     case "permissions":
@@ -153,7 +153,7 @@ export function localizeNormalizedInteraction(
         ...interaction,
         title: t("en", "interaction.permissions.title"),
         subtitle: t("en", "interaction.permissions.subtitle"),
-        detail: localizeInteractionDetail(interaction.detail)
+        detail: interaction.detail
       };
     case "questionnaire":
       const localizedQuestions = interaction.submission === "mcp_elicitation_form"
@@ -161,7 +161,9 @@ export function localizeNormalizedInteraction(
         : null;
       return {
         ...interaction,
-        title: t("en", "interaction.questionnaire.title"),
+        title: interaction.submission === "mcp_elicitation_form"
+          ? t("en", "interaction.questionnaire.mcpTitle")
+          : t("en", "interaction.questionnaire.title"),
         questions: (localizedQuestions ?? interaction.questions).map((question) => ({
           ...question,
           options: question.options?.map((option) => ({
@@ -240,15 +242,10 @@ function localizedDecisionLabel(kind: ApprovalDecisionKind, fallback: string): s
   }
 }
 
-function localizeInteractionDetail(detail: string | null): string | null {
-  return detail === null
-    ? null
-    : detail.replaceAll("授权根目录：", "Grant root: ").replaceAll("目录：", "Directory: ");
-}
-
 function normalizeCommandApproval(
   method: NormalizedApprovalInteraction["method"],
-  params: unknown
+  params: unknown,
+  language: UiLanguage = "zh"
 ): NormalizedApprovalInteraction | null {
   const record = asRecord(params);
   const threadId = getRequiredString(record, "threadId");
@@ -261,7 +258,12 @@ function normalizeCommandApproval(
   const command = getString(record, "command");
   const reason = getString(record, "reason");
   const cwd = getString(record, "cwd");
-  const detail = [reason, cwd ? `目录：${cwd}` : null].filter((value): value is string => Boolean(value)).join("\n");
+  const generatedCwd = cwd
+    ? language === "en"
+      ? t("en", "interaction.detail.directory", { value: cwd })
+      : `目录：${cwd}`
+    : null;
+  const detail = [reason, generatedCwd].filter((value): value is string => Boolean(value)).join("\n");
   return {
     kind: "approval",
     method,
@@ -330,6 +332,11 @@ function normalizeLegacyPatchApproval(
 
   const reason = getString(record, "reason");
   const grantRoot = getString(record, "grantRoot");
+  const generatedGrantRoot = grantRoot
+    ? language === "en"
+      ? t("en", "interaction.detail.grantRoot", { value: grantRoot })
+      : `授权根目录：${grantRoot}`
+    : null;
   return {
     kind: "approval",
     method,
@@ -341,7 +348,7 @@ function normalizeLegacyPatchApproval(
     title: "Codex 需要补丁批准",
     subtitle: "兼容补丁审批",
     body: summarizeLegacyFileChanges(record, language),
-    detail: [reason, grantRoot ? `授权根目录：${grantRoot}` : null]
+    detail: [reason, generatedGrantRoot]
       .filter((value): value is string => Boolean(value))
       .join("\n") || null,
     rawParams: params
@@ -350,7 +357,8 @@ function normalizeLegacyPatchApproval(
 
 function normalizeLegacyExecApproval(
   method: "execCommandApproval",
-  params: unknown
+  params: unknown,
+  language: UiLanguage = "zh"
 ): NormalizedApprovalInteraction | null {
   const record = asRecord(params);
   const threadId = getRequiredString(record, "conversationId") ?? getRequiredString(record, "threadId");
@@ -367,6 +375,11 @@ function normalizeLegacyExecApproval(
   const command = getStringArray(record, "command");
   const reason = getString(record, "reason");
   const cwd = getString(record, "cwd");
+  const generatedCwd = cwd
+    ? language === "en"
+      ? t("en", "interaction.detail.directory", { value: cwd })
+      : `目录：${cwd}`
+    : null;
   return {
     kind: "approval",
     method,
@@ -378,7 +391,7 @@ function normalizeLegacyExecApproval(
     title: "Codex 需要命令批准",
     subtitle: "兼容命令审批",
     body: command.length > 0 ? command.join(" ") : getString(record, "summary"),
-    detail: [reason, cwd ? `目录：${cwd}` : null]
+    detail: [reason, generatedCwd]
       .filter((value): value is string => Boolean(value))
       .join("\n") || null,
     rawParams: params

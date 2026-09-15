@@ -17,7 +17,6 @@ import {
 import { localizeNormalizedInteraction } from "../../interactions/normalize.js";
 import type { UiLanguage } from "../../types.js";
 import { t } from "../../i18n/locale.js";
-import { t } from "../../i18n/locale.js";
 
 export function createInteractionCardView(
   row: PersistedInteractionRecord,
