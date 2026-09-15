@@ -107,7 +107,7 @@ export function normalizeServerRequest(method: string, params: unknown, language
     case "item/fileChange/requestApproval":
       return normalizeFileChangeApproval(method, params);
     case "applyPatchApproval":
-      return normalizeLegacyPatchApproval(method, params);
+      return normalizeLegacyPatchApproval(method, params, language);
     case "execCommandApproval":
       return normalizeLegacyExecApproval(method, params);
     case "item/permissions/requestApproval":
@@ -313,7 +313,8 @@ function normalizeFileChangeApproval(
 
 function normalizeLegacyPatchApproval(
   method: "applyPatchApproval",
-  params: unknown
+  params: unknown,
+  language: UiLanguage = "zh"
 ): NormalizedApprovalInteraction | null {
   const record = asRecord(params);
   const threadId = getRequiredString(record, "conversationId") ?? getRequiredString(record, "threadId");
@@ -339,7 +340,7 @@ function normalizeLegacyPatchApproval(
     decisionOptions: buildLegacyApprovalDecisionOptions(),
     title: "Codex 需要补丁批准",
     subtitle: "兼容补丁审批",
-    body: summarizeLegacyFileChanges(record),
+    body: summarizeLegacyFileChanges(record, language),
     detail: [reason, grantRoot ? `授权根目录：${grantRoot}` : null]
       .filter((value): value is string => Boolean(value))
       .join("\n") || null,
@@ -878,7 +879,7 @@ function extractMultiSelectValues(record: Record<string, unknown>): string[] {
     .filter((value): value is string => value !== null);
 }
 
-function summarizeLegacyFileChanges(record: Record<string, unknown> | null): string | null {
+function summarizeLegacyFileChanges(record: Record<string, unknown> | null, language: UiLanguage = "zh"): string | null {
   const fileChanges = asRecord(record?.fileChanges);
   if (!fileChanges) {
     return getString(record, "patch") ?? getString(record, "summary");
@@ -894,5 +895,5 @@ function summarizeLegacyFileChanges(record: Record<string, unknown> | null): str
     return preview;
   }
 
-  return `${preview}\n以及另外 ${paths.length - 3} 个文件`;
+  return `${preview}\n${language === "en" ? t("en", "interaction.approval.additionalFiles", { count: paths.length - 3 }) : `以及另外 ${paths.length - 3} 个文件`}`;
 }

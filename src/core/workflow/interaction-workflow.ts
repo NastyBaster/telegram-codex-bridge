@@ -16,6 +16,8 @@ import {
 } from "./interaction-support.js";
 import { localizeNormalizedInteraction } from "../../interactions/normalize.js";
 import type { UiLanguage } from "../../types.js";
+import { t } from "../../i18n/locale.js";
+import { t } from "../../i18n/locale.js";
 
 export function createInteractionCardView(
   row: PersistedInteractionRecord,
@@ -112,7 +114,11 @@ export function createInteractionCardView(
         detail: interaction.detail,
         hubHint,
         ...(bridgeActions.length > 0 ? { bridgeActions } : {}),
-        actions: [
+        actions: language === "en" ? [
+          { text: t("en", "interaction.permissions.accept"), decisionKey: "accept" },
+          { text: t("en", "interaction.permissions.acceptForSession"), decisionKey: "acceptForSession" },
+          { text: t("en", "interaction.decision.decline"), decisionKey: "decline" }
+        ] : [
           { text: "批准本次权限", decisionKey: "accept" },
           { text: "本会话内总是批准", decisionKey: "acceptForSession" },
           { text: "拒绝", decisionKey: "decline" }
@@ -129,7 +135,10 @@ export function createInteractionCardView(
         detail: interaction.detail,
         hubHint,
         ...(bridgeActions.length > 0 ? { bridgeActions } : {}),
-        actions: [
+        actions: language === "en" ? [
+          { text: t("en", "interaction.mcp.accept"), decisionKey: "accept" },
+          { text: t("en", "interaction.decision.decline"), decisionKey: "decline" }
+        ] : [
           { text: "接受", decisionKey: "accept" },
           { text: "拒绝", decisionKey: "decline" }
         ]

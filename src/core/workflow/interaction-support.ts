@@ -85,7 +85,7 @@ export function summarizeAnsweredInteractionForSurface(
     .filter((value): value is string => Boolean(value));
 
   if (segments.length === 0) {
-    return summarizeAnsweredInteraction(responseJson, interaction);
+    return summarizeAnsweredInteraction(responseJson, interaction, language);
   }
 
   return `${interaction.title} / ${segments.join(" / ")}`;

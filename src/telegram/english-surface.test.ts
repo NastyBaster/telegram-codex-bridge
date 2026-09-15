@@ -76,4 +76,35 @@ test("English Telegram surfaces do not leak bridge-owned Han text", () => {
   );
   assert.equal(card.kind, "approval");
   assertNoBridgeOwnedHan("approval card", buildInteractionApprovalCard(card), ["npm test", "C:\\workspace"]);
+
+  const permission = normalizeServerRequest("item/permissions/requestApproval", {
+    threadId: "thread-en",
+    turnId: "turn-en",
+    itemId: "permissions-en",
+    requestedPermissions: { network: true }
+  }, "en");
+  assert.ok(permission);
+  const permissionCard = createInteractionCardView(
+    { interactionId: "permission-en", state: "pending", responseJson: null, errorReason: null },
+    permission,
+    { language: "en" }
+  );
+  assert.equal(permissionCard.kind, "approval");
+  assertNoBridgeOwnedHan("permission card", buildInteractionApprovalCard(permissionCard));
+
+  const elicitation = normalizeServerRequest("mcpServer/elicitation/request", {
+    threadId: "thread-en",
+    turnId: "turn-en",
+    serverName: "demo-mcp",
+    mode: "url",
+    message: "Confirm access"
+  }, "en");
+  assert.ok(elicitation);
+  const elicitationCard = createInteractionCardView(
+    { interactionId: "elicitation-en", state: "pending", responseJson: null, errorReason: null },
+    elicitation,
+    { language: "en" }
+  );
+  assert.equal(elicitationCard.kind, "approval");
+  assertNoBridgeOwnedHan("elicitation card", buildInteractionApprovalCard(elicitationCard), ["demo-mcp", "Confirm access"]);
 });
