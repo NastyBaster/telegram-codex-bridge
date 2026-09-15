@@ -9,6 +9,7 @@ import { loadConfig } from "./config.js";
 import {
   buildLaunchAgentPlist,
   buildTaskSchedulerRegistrationScript,
+  buildTaskSchedulerStatusScript,
   clearAuthorization,
   getStatus,
   installBridge,
@@ -918,6 +919,29 @@ test("buildTaskSchedulerRegistrationScript targets the Windows wrapper and login
     assert.match(script, /ctb\.cmd/u);
     assert.match(script, /service run/u);
     assert.match(script, /CodexTelegramBridge/u);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("buildTaskSchedulerStatusScript keeps conditional values outside the object literal", async () => {
+  const root = await mkdtemp(join(tmpdir(), "ctb-install-test-"));
+  const paths = createTestPaths(root);
+
+  try {
+    const script = buildTaskSchedulerStatusScript({
+      ...paths,
+      platform: "win32",
+      taskSchedulerName: "CodexTelegramBridge"
+    });
+
+    assert.match(script, /\$lastRunResult = if \(\$null -ne \$info\)/u);
+    assert.match(script, /\$lastRunTime = if \(\$null -ne \$info -and \$info\.LastRunTime\)/u);
+    assert.match(script, /lastRunResult = \$lastRunResult;/u);
+    assert.match(script, /lastRunTime = \$lastRunTime;/u);
+    assert.doesNotMatch(script, /\[pscustomobject\]@\{;/u);
+    assert.doesNotMatch(script, /\[pscustomobject\]@\{[^}]*lastRunTime = if/u);
+    assert.doesNotMatch(script, /\[pscustomobject\]@\{[^}]*lastRunResult = if/u);
   } finally {
     await rm(root, { recursive: true, force: true });
   }

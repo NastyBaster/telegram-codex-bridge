@@ -621,7 +621,7 @@ async function registerTaskSchedulerTask(paths: BridgePaths): Promise<void> {
   await callPowerShell(buildTaskSchedulerRegistrationScript(paths));
 }
 
-function buildTaskSchedulerStatusScript(paths: BridgePaths): string {
+export function buildTaskSchedulerStatusScript(paths: BridgePaths): string {
   const taskName = escapePowerShell(taskSchedulerName(paths));
 
   return [
@@ -632,13 +632,9 @@ function buildTaskSchedulerStatusScript(paths: BridgePaths): string {
     "$info = Get-ScheduledTaskInfo -TaskName $taskName -ErrorAction SilentlyContinue",
     "$taskToRun = ''",
     "if ($task.Actions.Count -gt 0) { $taskToRun = ($task.Actions[0].Execute + ' ' + $task.Actions[0].Arguments).Trim() }",
-    "[pscustomobject]@{",
-    "  exists = $true;",
-    "  state = [string]$task.State;",
-    "  lastRunResult = if ($null -ne $info) { [string]$info.LastTaskResult } else { '' };",
-    "  lastRunTime = if ($null -ne $info -and $info.LastRunTime) { $info.LastRunTime.ToString('o') } else { '' };",
-    "  taskToRun = $taskToRun",
-    "} | ConvertTo-Json -Compress"
+    "$lastRunResult = if ($null -ne $info) { [string]$info.LastTaskResult } else { '' }",
+    "$lastRunTime = if ($null -ne $info -and $info.LastRunTime) { $info.LastRunTime.ToString('o') } else { '' }",
+    "[pscustomobject]@{ exists = $true; state = [string]$task.State; lastRunResult = $lastRunResult; lastRunTime = $lastRunTime; taskToRun = $taskToRun } | ConvertTo-Json -Compress"
   ].join(";");
 }
 
