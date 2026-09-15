@@ -104,10 +104,12 @@ Behavior:
 - calls `plugin/uninstall` with the provided plugin id
 
 Responses:
-- install success: `已为项目「{project_name}」安装插件：{plugin_name}`
-- uninstall success: `已为项目「{project_name}」卸载插件：{plugin_id}`
+- install success, `zh`: `已为项目「{project_name}」安装插件：{plugin_name}`
+- install success, `en`: `Installed plugin for project "{project_name}": {plugin_name}`
+- uninstall success, `zh`: `已为项目「{project_name}」卸载插件：{plugin_id}`
+- uninstall success, `en`: `Uninstalled plugin for project "{project_name}": {plugin_id}`
 - install or uninstall failure: compact Telegram error text rather than raw protocol frames
-- when install returns `appsNeedingAuth`, include a short follow-up list of affected app names and install URLs when present
+- when install returns `appsNeedingAuth`, include a short localized follow-up list of affected app names and install URLs when present
 
 ### `/apps`
 

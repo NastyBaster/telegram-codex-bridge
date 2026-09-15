@@ -119,6 +119,7 @@ async function createCoordinatorContext(options: {
 
   const coordinator = new CodexCommandCoordinator({
     getStore: () => store,
+    getUiLanguage: () => store.getUiLanguage(),
     ensureAppServerAvailable: async () => appServer as never,
     startFreshThreadForClear: async (session) => {
       const startThread = (appServer as any).startThread;
@@ -346,24 +347,25 @@ test("CodexCommandCoordinator lists plugins and handles install and uninstall fl
 
   try {
     authorizeChatWithSession(store, "1");
+    store.setUiLanguage("en");
 
     await coordinator.handlePlugins("1");
     await coordinator.handlePlugin("1", "install repo-market/deploy");
     await coordinator.handlePlugin("1", "uninstall repo.logs");
 
-    assert.match(sentMessages[0] ?? "", /当前会话: Project One/u);
-    assert.match(sentMessages[0] ?? "", /当前项目: Project One/u);
-    assert.match(sentMessages[0] ?? "", /可用插件/u);
-    assert.match(sentMessages[0] ?? "", /\[已安装\]\[启用\] repo\.logs \| Logs/u);
+    assert.match(sentMessages[0] ?? "", /Current session: Project One/u);
+    assert.match(sentMessages[0] ?? "", /Current project: Project One/u);
+    assert.match(sentMessages[0] ?? "", /Available plugins/u);
+    assert.match(sentMessages[0] ?? "", /\[installed\]\[enabled\] repo\.logs \| Logs/u);
     assert.match(sentMessages[0] ?? "", /repo-market\/deploy/u);
     assert.deepEqual(installCalls, [{
       marketplacePath: "/marketplaces/repo",
       pluginName: "deploy"
     }]);
     assert.deepEqual(uninstallCalls, ["repo.logs"]);
-    assert.match(sentMessages[1] ?? "", /已为项目「Project One」安装插件：deploy/u);
+    assert.match(sentMessages[1] ?? "", /Installed plugin for project "Project One": deploy/u);
     assert.match(sentMessages[1] ?? "", /Slack/u);
-    assert.match(sentMessages[2] ?? "", /已为项目「Project One」卸载插件：repo\.logs/u);
+    assert.match(sentMessages[2] ?? "", /Uninstalled plugin for project "Project One": repo\.logs/u);
   } finally {
     await cleanup();
   }
