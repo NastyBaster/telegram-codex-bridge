@@ -1,5 +1,6 @@
 import { asRecord, getString, getBoolean, getArray, getNullableArray, getStringArray, getRequiredString } from "../util/untyped.js";
 import type { UiLanguage } from "../types.js";
+import { t } from "../i18n/locale.js";
 
 export const SKIP_QUESTION_OPTION_VALUE = "__skip__";
 
@@ -150,8 +151,8 @@ export function localizeNormalizedInteraction(
     case "permissions":
       return {
         ...interaction,
-        title: "Codex requests permission approval",
-        subtitle: "Permission approval",
+        title: t("en", "interaction.permissions.title"),
+        subtitle: t("en", "interaction.permissions.subtitle"),
         detail: localizeInteractionDetail(interaction.detail)
       };
     case "questionnaire":
@@ -160,17 +161,17 @@ export function localizeNormalizedInteraction(
         : null;
       return {
         ...interaction,
-        title: "Codex needs more information",
+        title: t("en", "interaction.questionnaire.title"),
         questions: (localizedQuestions ?? interaction.questions).map((question) => ({
           ...question,
           options: question.options?.map((option) => ({
             ...option,
             ...(option.value === SKIP_QUESTION_OPTION_VALUE
-              ? { label: "Skip", description: "Leave empty" }
+              ? { label: t("en", "interaction.questionnaire.skip"), description: t("en", "interaction.questionnaire.leaveEmpty") }
               : question.answerFormat === "boolean" && option.value === "true"
-                ? { label: "Yes", description: "Return true" }
+                ? { label: t("en", "interaction.questionnaire.yes"), description: t("en", "interaction.questionnaire.returnTrue") }
                 : question.answerFormat === "boolean" && option.value === "false"
-                  ? { label: "No", description: "Return false" }
+                  ? { label: t("en", "interaction.questionnaire.no"), description: t("en", "interaction.questionnaire.returnFalse") }
                   : {})
           })) ?? null
         }))
@@ -206,30 +207,30 @@ function localizeMcpFormQuestions(interaction: NormalizedQuestionnaireInteractio
 
 function localizedApprovalTitle(method: NormalizedApprovalInteraction["method"]): string {
   return method === "item/commandExecution/requestApproval" || method === "execCommandApproval"
-    ? "Codex requests command approval"
+    ? t("en", "interaction.approval.commandTitle")
     : method === "item/fileChange/requestApproval"
-      ? "Codex requests approval for file changes"
-      : "Codex requests patch approval";
+      ? t("en", "interaction.approval.fileChangeTitle")
+      : t("en", "interaction.approval.patchTitle");
 }
 
 function localizedApprovalSubtitle(method: NormalizedApprovalInteraction["method"]): string {
   return method === "item/commandExecution/requestApproval" || method === "execCommandApproval"
-    ? "Command approval"
+    ? t("en", "interaction.approval.commandSubtitle")
     : method === "item/fileChange/requestApproval"
-      ? "File change approval"
+      ? t("en", "interaction.approval.fileChangeSubtitle")
       : method === "applyPatchApproval"
-        ? "Patch approval"
-        : "Command approval";
+        ? t("en", "interaction.approval.patchSubtitle")
+        : t("en", "interaction.approval.commandSubtitle");
 }
 
 function localizedDecisionLabel(kind: ApprovalDecisionKind, fallback: string): string {
   switch (kind) {
-    case "accept": return "Approve";
-    case "acceptForSession": return "Always approve for this session";
-    case "acceptWithExecpolicyAmendment": return "Approve and update command rules";
+    case "accept": return t("en", "interaction.decision.accept");
+    case "acceptForSession": return t("en", "interaction.decision.acceptForSession");
+    case "acceptWithExecpolicyAmendment": return t("en", "interaction.decision.acceptWithExecpolicyAmendment");
     case "applyNetworkPolicyAmendment": return fallback.includes("（") ? fallback.replace(/^批准并保存网络规则（(.+)）$/, "Approve and save network rule ($1)") : "Approve and save network rule";
-    case "decline": return "Decline";
-    case "cancel": return "Cancel interaction";
+    case "decline": return t("en", "interaction.decision.decline");
+    case "cancel": return t("en", "interaction.decision.cancel");
   }
 }
 
@@ -566,7 +567,7 @@ function normalizeMcpFormQuestion(
       question: buildMcpQuestionPrompt(
         header,
         description,
-        language === "en" ? "Choose one of the options below." : "从下方选一个选项。",
+        language === "en" ? t("en", "interaction.mcp.chooseOne") : "从下方选一个选项。",
         required,
         language
       ),
@@ -610,13 +611,13 @@ function normalizeMcpFormQuestion(
       question: buildMcpQuestionPrompt(
         header,
         description,
-        language === "en" ? "Choose yes or no." : "请选择是或否。",
+        language === "en" ? t("en", "interaction.mcp.chooseYesNo") : "请选择是或否。",
         required,
         language
       ),
       options: appendSkipOption([
-        { value: "true", label: language === "en" ? "Yes" : "是", description: language === "en" ? "Return true" : "返回 true" },
-        { value: "false", label: language === "en" ? "No" : "否", description: language === "en" ? "Return false" : "返回 false" }
+        { value: "true", label: language === "en" ? t("en", "interaction.questionnaire.yes") : "是", description: language === "en" ? t("en", "interaction.questionnaire.returnTrue") : "返回 true" },
+        { value: "false", label: language === "en" ? t("en", "interaction.questionnaire.no") : "否", description: language === "en" ? t("en", "interaction.questionnaire.returnFalse") : "返回 false" }
       ], required, language),
       isOther: false,
       isSecret: false,
@@ -633,7 +634,7 @@ function normalizeMcpFormQuestion(
       question: buildMcpQuestionPrompt(
         header,
         description,
-        type === "integer" ? language === "en" ? "Send an integer." : "请直接发送整数。" : language === "en" ? "Send a number." : "请直接发送数字。",
+        type === "integer" ? language === "en" ? t("en", "interaction.mcp.sendInteger") : "请直接发送整数。" : language === "en" ? t("en", "interaction.mcp.sendNumber") : "请直接发送数字。",
         required,
         language
       ),
@@ -650,7 +651,7 @@ function normalizeMcpFormQuestion(
     return {
       id: fieldName,
       header,
-      question: buildMcpQuestionPrompt(header, description, language === "en" ? "Send a text answer." : "请直接发送文字回答。", required, language),
+      question: buildMcpQuestionPrompt(header, description, language === "en" ? t("en", "interaction.mcp.sendText") : "请直接发送文字回答。", required, language),
       options: required ? null : [buildSkipQuestionOption(language)],
       isOther: true,
       isSecret: false,
@@ -671,9 +672,9 @@ function buildMcpQuestionPrompt(
   language: UiLanguage = "zh"
 ): string {
   const parts = [
-    description ?? (language === "en" ? `Provide ${header}.` : `请提供 ${header}。`),
+    description ?? (language === "en" ? t("en", "interaction.mcp.provide", { header }) : `请提供 ${header}。`),
     answerHint,
-    required ? (language === "en" ? "This field is required." : "这是必填项。") : (language === "en" ? "This field is optional." : "这是可选项。")
+    required ? (language === "en" ? t("en", "interaction.mcp.required") : "这是必填项。") : (language === "en" ? t("en", "interaction.mcp.optional") : "这是可选项。")
   ];
   return parts.join("\n");
 }
@@ -805,8 +806,8 @@ function appendSkipOption(options: NormalizedQuestionOption[], required: boolean
 function buildSkipQuestionOption(language: UiLanguage = "zh"): NormalizedQuestionOption {
   return {
     value: SKIP_QUESTION_OPTION_VALUE,
-    label: language === "en" ? "Skip" : "跳过",
-    description: language === "en" ? "Leave empty" : "保留为空"
+    label: language === "en" ? t("en", "interaction.questionnaire.skip") : "跳过",
+    description: language === "en" ? t("en", "interaction.questionnaire.leaveEmpty") : "保留为空"
   };
 }
 
