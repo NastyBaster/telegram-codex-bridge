@@ -314,20 +314,23 @@ export class CodexCommandCoordinator {
     });
     const entry = result.data.find((candidate) => candidate.cwd === activeSession.projectPath) ?? result.data[0];
     if (!entry) {
-      await this.deps.safeSendMessage(chatId, "当前项目没有可列出的技能。");
+      await this.deps.safeSendMessage(chatId, "The current project has no skills to list.");
       return;
     }
 
-    const lines = this.buildSessionProjectContextLines(activeSession, "可用技能");
+    const lines = this.buildSessionProjectContextLines(activeSession, "Available skills", {
+      session: "Current session",
+      project: "Current project"
+    });
     for (const skill of entry.skills.slice(0, 20)) {
       const description = skill.interface?.shortDescription ?? skill.shortDescription ?? skill.description;
-      const marker = skill.enabled ? "[启用] " : "[禁用] ";
+      const marker = skill.enabled ? "[enabled] " : "[disabled] ";
       lines.push(`${marker}${skill.name} | ${summarizeTextPreview(description, 80)}`);
     }
     if (entry.errors.length > 0) {
-      lines.push("", `扫描警告：${summarizeTextPreview(entry.errors[0]?.message ?? "unknown error", 120)}`);
+      lines.push("", `Scan warning: ${summarizeTextPreview(entry.errors[0]?.message ?? "unknown error", 120)}`);
     }
-    lines.push("", "使用 /skill <技能名> :: 任务说明 将 skill 作为结构化输入发送给 Codex。");
+    lines.push("", "Use /skill <skill name> :: <task instructions> to send a skill as structured input to Codex.");
     await this.deps.safeSendMessage(chatId, lines.join("\n"));
   }
 
@@ -357,7 +360,7 @@ export class CodexCommandCoordinator {
     const entry = result.data.find((candidate) => candidate.cwd === activeSession.projectPath) ?? result.data[0];
     const skill = entry?.skills.find((candidate) => candidate.name === parsed.value);
     if (!skill) {
-      await this.deps.safeSendMessage(chatId, "找不到这个技能，请先发送 /skills 查看当前项目的技能列表。");
+      await this.deps.safeSendMessage(chatId, "Skill not found. Send /skills first to see the current project's skill list.");
       return;
     }
 
@@ -1013,11 +1016,12 @@ export class CodexCommandCoordinator {
 
   private buildSessionProjectContextLines(
     session: Pick<SessionRow, "displayName" | "projectName" | "projectAlias">,
-    title: string
+    title: string,
+    labels: { session: string; project: string } = { session: "当前会话", project: "当前项目" }
   ): string[] {
     return [
-      `当前会话：${session.displayName}`,
-      `当前项目：${this.projectDisplayName(session)}`,
+      `${labels.session}: ${session.displayName}`,
+      `${labels.project}: ${this.projectDisplayName(session)}`,
       title
     ];
   }
