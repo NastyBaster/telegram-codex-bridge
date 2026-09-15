@@ -321,20 +321,20 @@ export class CodexCommandCoordinator {
     });
     const entry = result.data.find((candidate) => candidate.cwd === activeSession.projectPath) ?? result.data[0];
     if (!entry) {
-      await this.deps.safeSendMessage(chatId, "当前项目没有可列出的技能。");
+      await this.deps.safeSendMessage(chatId, this.copy("telegram.admin.skillsEmpty"));
       return;
     }
 
-    const lines = this.buildSessionProjectContextLines(activeSession, "可用技能");
+    const lines = this.buildSessionProjectContextLines(activeSession, this.copy("telegram.admin.skillsTitle"));
     for (const skill of entry.skills.slice(0, 20)) {
       const description = skill.interface?.shortDescription ?? skill.shortDescription ?? skill.description;
-      const marker = skill.enabled ? "[启用] " : "[禁用] ";
+      const marker = skill.enabled ? this.copy("telegram.admin.skillEnabled") : this.copy("telegram.admin.skillDisabled");
       lines.push(`${marker}${skill.name} | ${summarizeTextPreview(description, 80)}`);
     }
     if (entry.errors.length > 0) {
-      lines.push("", `扫描警告：${summarizeTextPreview(entry.errors[0]?.message ?? "unknown error", 120)}`);
+      lines.push("", this.copy("telegram.admin.scanWarning", { value: summarizeTextPreview(entry.errors[0]?.message ?? "unknown error", 120) }));
     }
-    lines.push("", "使用 /skill <技能名> :: 任务说明 将 skill 作为结构化输入发送给 Codex。");
+    lines.push("", this.copy("telegram.admin.skillsHint"));
     await this.deps.safeSendMessage(chatId, lines.join("\n"));
   }
 
@@ -352,7 +352,7 @@ export class CodexCommandCoordinator {
 
     const parsed = splitStructuredInputCommand(args);
     if (!parsed.value) {
-      await this.deps.safeSendMessage(chatId, "用法：/skill <技能名> :: 任务说明");
+      await this.deps.safeSendMessage(chatId, this.copy("telegram.admin.skillUsage"));
       return;
     }
 
@@ -364,7 +364,7 @@ export class CodexCommandCoordinator {
     const entry = result.data.find((candidate) => candidate.cwd === activeSession.projectPath) ?? result.data[0];
     const skill = entry?.skills.find((candidate) => candidate.name === parsed.value);
     if (!skill) {
-      await this.deps.safeSendMessage(chatId, "找不到这个技能，请先发送 /skills 查看当前项目的技能列表。");
+      await this.deps.safeSendMessage(chatId, this.copy("telegram.admin.skillNotFound"));
       return;
     }
 
@@ -392,19 +392,19 @@ export class CodexCommandCoordinator {
       cwds: [activeSession.projectPath]
     });
     if (result.marketplaces.length === 0) {
-      await this.deps.safeSendMessage(chatId, "当前项目没有可列出的插件。");
+      await this.deps.safeSendMessage(chatId, this.copy("telegram.admin.pluginsEmpty"));
       return;
     }
 
-    const lines = this.buildSessionProjectContextLines(activeSession, "可用插件");
+    const lines = this.buildSessionProjectContextLines(activeSession, this.copy("telegram.admin.pluginsTitle"));
     const installExample = findFirstInstallablePlugin(result);
 
     for (const marketplace of result.marketplaces.slice(0, 5)) {
-      lines.push(`市场：${marketplace.name}`);
+      lines.push(this.copy("telegram.admin.marketplace", { name: marketplace.name }));
       for (const plugin of marketplace.plugins.slice(0, 8)) {
         const flags = [
-          plugin.installed ? "[已安装]" : "[未安装]",
-          plugin.enabled ? "[启用]" : ""
+          plugin.installed ? this.copy("telegram.admin.pluginInstalled") : this.copy("telegram.admin.pluginNotInstalled"),
+          plugin.enabled ? this.copy("telegram.admin.skillEnabled").trim() : ""
         ].join("");
         const label = plugin.interface?.displayName ?? plugin.name;
         const description = plugin.interface?.shortDescription;
@@ -412,10 +412,10 @@ export class CodexCommandCoordinator {
       }
     }
 
-    lines.push("", "使用 /plugin install <市场>/<插件名> 安装插件。");
-    lines.push("使用 /plugin uninstall <插件ID> 卸载插件。");
+    lines.push("", this.copy("telegram.admin.installPluginHint"));
+    lines.push(this.copy("telegram.admin.uninstallPluginHint"));
     if (installExample) {
-      lines.push(`例如：/plugin install ${installExample.marketplaceName}/${installExample.pluginName}`);
+      lines.push(this.copy("telegram.admin.pluginExample", { value: `${installExample.marketplaceName}/${installExample.pluginName}` }));
     }
     await this.deps.safeSendMessage(chatId, lines.join("\n"));
   }
@@ -439,7 +439,7 @@ export class CodexCommandCoordinator {
       const target = rest.join(" ").trim();
       const parsedTarget = parsePluginInstallTarget(target);
       if (!parsedTarget) {
-        await this.deps.safeSendMessage(chatId, "用法：/plugin install <市场>/<插件名>");
+        await this.deps.safeSendMessage(chatId, this.copy("telegram.admin.pluginUsage"));
         return;
       }
 
@@ -449,7 +449,7 @@ export class CodexCommandCoordinator {
       const marketplace = result.marketplaces.find((entry) => entry.name === parsedTarget.marketplaceName);
       const plugin = marketplace?.plugins.find((entry) => entry.name === parsedTarget.pluginName);
       if (!marketplace || !plugin) {
-        await this.deps.safeSendMessage(chatId, "找不到这个插件，请先发送 /plugins 查看当前可用列表。");
+        await this.deps.safeSendMessage(chatId, this.copy("telegram.admin.pluginNotFound"));
         return;
       }
 
@@ -457,9 +457,9 @@ export class CodexCommandCoordinator {
         marketplacePath: marketplace.path,
         pluginName: plugin.name
       });
-      const lines = [`已为项目「${this.projectDisplayName(activeSession)}」安装插件：${plugin.name}`];
+      const lines = [this.copy("telegram.admin.pluginInstalledSuccess", { project: this.projectDisplayName(activeSession), name: plugin.name })];
       if (installResult.appsNeedingAuth.length > 0) {
-        lines.push("", "这些 App 可能还需要额外授权：");
+        lines.push("", this.copy("telegram.admin.appsNeedAuth"));
         for (const app of installResult.appsNeedingAuth.slice(0, 5)) {
           lines.push(`- ${app.name}${app.installUrl ? ` | ${app.installUrl}` : ""}`);
         }
@@ -471,16 +471,16 @@ export class CodexCommandCoordinator {
     if (subcommand === "uninstall") {
       const pluginId = rest.join(" ").trim();
       if (!pluginId) {
-        await this.deps.safeSendMessage(chatId, "用法：/plugin uninstall <插件ID>");
+        await this.deps.safeSendMessage(chatId, this.copy("telegram.admin.pluginUninstallUsage"));
         return;
       }
 
       await appServer.uninstallPlugin(pluginId);
-      await this.deps.safeSendMessage(chatId, `已为项目「${this.projectDisplayName(activeSession)}」卸载插件：${pluginId}`);
+      await this.deps.safeSendMessage(chatId, this.copy("telegram.admin.pluginUninstalledSuccess", { project: this.projectDisplayName(activeSession), id: pluginId }));
       return;
     }
 
-    await this.deps.safeSendMessage(chatId, "用法：/plugin install <市场>/<插件名> 或 /plugin uninstall <插件ID>");
+    await this.deps.safeSendMessage(chatId, this.copy("telegram.admin.pluginCommandUsage"));
   }
 
   async handleApps(chatId: string): Promise<void> {
