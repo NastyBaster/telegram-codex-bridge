@@ -409,9 +409,9 @@ export function buildProjectSelectedText(projectName: string): string {
 
 export function buildSessionCreatedText(sessionName: string, projectPath: string): string {
   return [
-    formatHtmlHeading("已新建会话"),
-    formatHtmlField("会话名：", sessionName),
-    formatHtmlField("路径：", projectPath)
+    formatHtmlHeading("New session created"),
+    formatHtmlField("Session name: ", sessionName),
+    formatHtmlField("Path: ", projectPath)
   ].join("\n");
 }
 

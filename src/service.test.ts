@@ -5841,7 +5841,7 @@ test("manual path flow replaces stale picker cards when edits fail", async () =>
 
     assert.deepEqual(deleted, [pickerMessageId, sent[1]!.messageId, sent[2]!.messageId]);
     assert.equal(sent[3]?.parseMode, "HTML");
-    assert.match(sent[3]?.text ?? "", /<b>已新建会话<\/b>/u);
+    assert.match(sent[3]?.text ?? "", /<b>New session created<\/b>/u);
     assert.match(sent[3]?.text ?? "", /manual-fallback-project/u);
     assert.equal(store.getActiveSession("chat-1")?.projectPath, projectPath);
   } finally {

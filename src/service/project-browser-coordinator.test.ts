@@ -378,7 +378,7 @@ test("pre-session browse can create a session from the current directory with co
       await realpath(rootPath)
     );
     assert.deepEqual(context.deletedMessages, [77, 1000]);
-    assert.match(context.sentHtml.at(-1)?.html ?? "", /<b>已新建会话<\/b>/u);
+    assert.match(context.sentHtml.at(-1)?.html ?? "", /<b>New session created<\/b>/u);
     assert.deepEqual(context.currentSessionCardCalls, [{ chatId: "chat-1", reason: "session_created" }]);
   } finally {
     await context.cleanup();
