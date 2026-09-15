@@ -43,6 +43,7 @@ function createTestPaths(root: string): BridgePaths {
 
 async function createCoordinatorContext(options?: {
   activePack?: BridgeConfig["activePack"];
+  uiLanguage?: "zh" | "en";
 }) {
   const root = await mkdtemp(join(tmpdir(), "ctb-session-project-coordinator-test-"));
   const paths = createTestPaths(root);
@@ -80,7 +81,7 @@ async function createCoordinatorContext(options?: {
       preferBridgeCommandButtons: false,
       getStore: () => store,
       getSnapshot: () => null,
-      getUiLanguage: () => "zh",
+      getUiLanguage: () => options?.uiLanguage ?? "zh",
       ensureAppServerAvailable: async () => {
         throw new Error("not used");
       },
@@ -260,7 +261,7 @@ test("handleNew deletes the previous picker and sends a fresh picker message", a
     editedMessages,
     paths,
     cleanup
-  } = await createCoordinatorContext();
+  } = await createCoordinatorContext({ uiLanguage: "en" });
 
   try {
     authorizeChat(store, "chat-1");
@@ -298,7 +299,7 @@ test("returnToProjectPicker deletes the current picker and sends a fresh picker 
     editedMessages,
     paths,
     cleanup
-  } = await createCoordinatorContext();
+  } = await createCoordinatorContext({ uiLanguage: "en" });
 
   try {
     authorizeChat(store, "chat-1");
