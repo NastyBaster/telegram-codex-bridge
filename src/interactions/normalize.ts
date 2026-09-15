@@ -1,4 +1,5 @@
 import { asRecord, getString, getBoolean, getArray, getNullableArray, getStringArray, getRequiredString } from "../util/untyped.js";
+import type { UiLanguage } from "../types.js";
 
 export const SKIP_QUESTION_OPTION_VALUE = "__skip__";
 
@@ -97,8 +98,9 @@ export type NormalizedInteraction =
   | NormalizedQuestionnaireInteraction
   | NormalizedElicitationInteraction;
 
-export function normalizeServerRequest(method: string, params: unknown): NormalizedInteraction | null {
-  switch (method) {
+export function normalizeServerRequest(method: string, params: unknown, language: UiLanguage = "zh"): NormalizedInteraction | null {
+  const interaction = (() => {
+    switch (method) {
     case "item/commandExecution/requestApproval":
       return normalizeCommandApproval(method, params);
     case "item/fileChange/requestApproval":
@@ -112,10 +114,129 @@ export function normalizeServerRequest(method: string, params: unknown): Normali
     case "item/tool/requestUserInput":
       return normalizeQuestionnaire(method, params);
     case "mcpServer/elicitation/request":
-      return normalizeElicitation(method, params);
+      return normalizeElicitation(method, params, language);
     default:
       return null;
+    }
+  })();
+
+  return interaction ? localizeNormalizedInteraction(interaction, language) : null;
+}
+
+export function localizeNormalizedInteraction(
+  interaction: NormalizedInteraction,
+  language: UiLanguage
+): NormalizedInteraction {
+  if (language === "zh") {
+    return interaction;
   }
+
+  const localizedOptions = interaction.kind === "approval"
+    ? interaction.decisionOptions.map((option) => ({
+        ...option,
+        label: localizedDecisionLabel(option.kind, option.label)
+      }))
+    : undefined;
+
+  switch (interaction.kind) {
+    case "approval":
+      return {
+        ...interaction,
+        title: localizedApprovalTitle(interaction.method),
+        subtitle: localizedApprovalSubtitle(interaction.method),
+        detail: localizeInteractionDetail(interaction.detail),
+        ...(localizedOptions ? { decisionOptions: localizedOptions } : {})
+      };
+    case "permissions":
+      return {
+        ...interaction,
+        title: "Codex requests permission approval",
+        subtitle: "Permission approval",
+        detail: localizeInteractionDetail(interaction.detail)
+      };
+    case "questionnaire":
+      const localizedQuestions = interaction.submission === "mcp_elicitation_form"
+        ? localizeMcpFormQuestions(interaction)
+        : null;
+      return {
+        ...interaction,
+        title: "Codex needs more information",
+        questions: (localizedQuestions ?? interaction.questions).map((question) => ({
+          ...question,
+          options: question.options?.map((option) => ({
+            ...option,
+            ...(option.value === SKIP_QUESTION_OPTION_VALUE
+              ? { label: "Skip", description: "Leave empty" }
+              : question.answerFormat === "boolean" && option.value === "true"
+                ? { label: "Yes", description: "Return true" }
+                : question.answerFormat === "boolean" && option.value === "false"
+                  ? { label: "No", description: "Return false" }
+                  : {})
+          })) ?? null
+        }))
+      };
+    case "elicitation":
+      return {
+        ...interaction,
+        title: "MCP requests confirmation",
+        ...(interaction.message === "MCP 发起了一个需要你确认的请求。"
+          ? { message: "MCP sent a request that needs your confirmation." }
+          : {})
+      };
+  }
+}
+
+function localizeMcpFormQuestions(interaction: NormalizedQuestionnaireInteraction): NormalizedQuestion[] | null {
+  const record = asRecord(interaction.rawParams);
+  if (!record) {
+    return null;
+  }
+  const schema = asRecord(record.requestedSchema);
+  const properties = asRecord(schema?.properties);
+  if (!properties) {
+    return null;
+  }
+
+  const requiredFields = new Set(getStringArray(schema, "required"));
+  const questions = Object.entries(properties)
+    .map(([fieldName, fieldSchema]) => normalizeMcpFormQuestion(fieldName, fieldSchema, requiredFields.has(fieldName), "en"))
+    .filter((question): question is NormalizedQuestion => question !== null);
+  return questions.length > 0 ? questions : null;
+}
+
+function localizedApprovalTitle(method: NormalizedApprovalInteraction["method"]): string {
+  return method === "item/commandExecution/requestApproval" || method === "execCommandApproval"
+    ? "Codex requests command approval"
+    : method === "item/fileChange/requestApproval"
+      ? "Codex requests approval for file changes"
+      : "Codex requests patch approval";
+}
+
+function localizedApprovalSubtitle(method: NormalizedApprovalInteraction["method"]): string {
+  return method === "item/commandExecution/requestApproval" || method === "execCommandApproval"
+    ? "Command approval"
+    : method === "item/fileChange/requestApproval"
+      ? "File change approval"
+      : method === "applyPatchApproval"
+        ? "Patch approval"
+        : "Command approval";
+}
+
+function localizedDecisionLabel(kind: ApprovalDecisionKind, fallback: string): string {
+  switch (kind) {
+    case "accept": return "Approve";
+    case "acceptForSession": return "Always approve for this session";
+    case "acceptWithExecpolicyAmendment": return "Approve and update command rules";
+    case "applyNetworkPolicyAmendment": return fallback.includes("（") ? fallback.replace(/^批准并保存网络规则（(.+)）$/, "Approve and save network rule ($1)") : "Approve and save network rule";
+    case "decline": return "Decline";
+    case "cancel": return "Cancel interaction";
+  }
+}
+
+function localizeInteractionDetail(detail: string | null): string | null {
+  return detail === null
+    ? null
+    : detail.replaceAll("目录：", "Directory: ").replaceAll("授权根目录：", "Grant root: ");
 }
 
 function normalizeCommandApproval(
@@ -354,7 +475,8 @@ function normalizeToolQuestion(question: unknown): NormalizedQuestion | null {
 
 function normalizeElicitation(
   method: "mcpServer/elicitation/request",
-  params: unknown
+  params: unknown,
+  language: UiLanguage = "zh"
 ): NormalizedInteraction | null {
   const record = asRecord(params);
   if (!record) {
@@ -367,7 +489,7 @@ function normalizeElicitation(
   }
 
   if (getString(record, "mode") === "form") {
-    return normalizeElicitationForm(method, record, params, threadId, serverName);
+    return normalizeElicitationForm(method, record, params, threadId, serverName, language);
   }
 
   return {
@@ -389,7 +511,8 @@ function normalizeElicitationForm(
   record: Record<string, unknown>,
   params: unknown,
   threadId: string,
-  serverName: string
+  serverName: string,
+  language: UiLanguage = "zh"
 ): NormalizedQuestionnaireInteraction | null {
   const schema = asRecord(record.requestedSchema);
   const properties = asRecord(schema?.properties);
@@ -399,7 +522,7 @@ function normalizeElicitationForm(
 
   const requiredFields = new Set(getStringArray(schema, "required"));
   const questions = Object.entries(properties)
-    .map(([fieldName, fieldSchema]) => normalizeMcpFormQuestion(fieldName, fieldSchema, requiredFields.has(fieldName)))
+    .map(([fieldName, fieldSchema]) => normalizeMcpFormQuestion(fieldName, fieldSchema, requiredFields.has(fieldName), language))
     .filter((question): question is NormalizedQuestion => question !== null);
 
   if (questions.length === 0) {
@@ -420,7 +543,12 @@ function normalizeElicitationForm(
   };
 }
 
-function normalizeMcpFormQuestion(fieldName: string, schema: unknown, required: boolean): NormalizedQuestion | null {
+function normalizeMcpFormQuestion(
+  fieldName: string,
+  schema: unknown,
+  required: boolean,
+  language: UiLanguage = "zh"
+): NormalizedQuestion | null {
   const record = asRecord(schema);
   if (!record) {
     return null;
@@ -431,11 +559,17 @@ function normalizeMcpFormQuestion(fieldName: string, schema: unknown, required: 
 
   const singleSelectOptions = extractSingleSelectOptions(record);
   if (singleSelectOptions) {
-    const options = appendSkipOption(singleSelectOptions, required);
+    const options = appendSkipOption(singleSelectOptions, required, language);
     return {
       id: fieldName,
       header,
-      question: buildMcpQuestionPrompt(header, description, "从下方选一个选项。", required),
+      question: buildMcpQuestionPrompt(
+        header,
+        description,
+        language === "en" ? "Choose one of the options below." : "从下方选一个选项。",
+        required,
+        language
+      ),
       options,
       isOther: false,
       isSecret: false,
@@ -454,11 +588,12 @@ function normalizeMcpFormQuestion(fieldName: string, schema: unknown, required: 
         header,
         description,
         allowedValues.length > 0
-          ? `可选值：${allowedValues.join("、")}。多个值请用逗号分隔。`
-          : "多个值请用逗号分隔。",
-        required
+          ? language === "en" ? `Allowed values: ${allowedValues.join(", ")}. Separate multiple values with commas.` : `可选值：${allowedValues.join("、")}。多个值请用逗号分隔。`
+          : language === "en" ? "Separate multiple values with commas." : "多个值请用逗号分隔。",
+        required,
+        language
       ),
-      options: required ? null : [buildSkipQuestionOption()],
+      options: required ? null : [buildSkipQuestionOption(language)],
       isOther: true,
       isSecret: false,
       required,
@@ -472,11 +607,17 @@ function normalizeMcpFormQuestion(fieldName: string, schema: unknown, required: 
     return {
       id: fieldName,
       header,
-      question: buildMcpQuestionPrompt(header, description, "请选择是或否。", required),
+      question: buildMcpQuestionPrompt(
+        header,
+        description,
+        language === "en" ? "Choose yes or no." : "请选择是或否。",
+        required,
+        language
+      ),
       options: appendSkipOption([
-        { value: "true", label: "是", description: "返回 true" },
-        { value: "false", label: "否", description: "返回 false" }
-      ], required),
+        { value: "true", label: language === "en" ? "Yes" : "是", description: language === "en" ? "Return true" : "返回 true" },
+        { value: "false", label: language === "en" ? "No" : "否", description: language === "en" ? "Return false" : "返回 false" }
+      ], required, language),
       isOther: false,
       isSecret: false,
       required,
@@ -492,10 +633,11 @@ function normalizeMcpFormQuestion(fieldName: string, schema: unknown, required: 
       question: buildMcpQuestionPrompt(
         header,
         description,
-        type === "integer" ? "请直接发送整数。" : "请直接发送数字。",
-        required
+        type === "integer" ? language === "en" ? "Send an integer." : "请直接发送整数。" : language === "en" ? "Send a number." : "请直接发送数字。",
+        required,
+        language
       ),
-      options: required ? null : [buildSkipQuestionOption()],
+      options: required ? null : [buildSkipQuestionOption(language)],
       isOther: true,
       isSecret: false,
       required,
@@ -508,8 +650,8 @@ function normalizeMcpFormQuestion(fieldName: string, schema: unknown, required: 
     return {
       id: fieldName,
       header,
-      question: buildMcpQuestionPrompt(header, description, "请直接发送文字回答。", required),
-      options: required ? null : [buildSkipQuestionOption()],
+      question: buildMcpQuestionPrompt(header, description, language === "en" ? "Send a text answer." : "请直接发送文字回答。", required, language),
+      options: required ? null : [buildSkipQuestionOption(language)],
       isOther: true,
       isSecret: false,
       required,
@@ -525,12 +667,13 @@ function buildMcpQuestionPrompt(
   header: string,
   description: string | null,
   answerHint: string,
-  required: boolean
+  required: boolean,
+  language: UiLanguage = "zh"
 ): string {
   const parts = [
-    description ?? `请提供 ${header}。`,
+    description ?? (language === "en" ? `Provide ${header}.` : `请提供 ${header}。`),
     answerHint,
-    required ? "这是必填项。" : "这是可选项。"
+    required ? (language === "en" ? "This field is required." : "这是必填项。") : (language === "en" ? "This field is optional." : "这是可选项。")
   ];
   return parts.join("\n");
 }
@@ -655,15 +798,15 @@ function approvalDecisionLabel(kind: Extract<ApprovalDecisionKind, "accept" | "a
   }
 }
 
-function appendSkipOption(options: NormalizedQuestionOption[], required: boolean): NormalizedQuestionOption[] {
-  return required ? options : [...options, buildSkipQuestionOption()];
+function appendSkipOption(options: NormalizedQuestionOption[], required: boolean, language: UiLanguage = "zh"): NormalizedQuestionOption[] {
+  return required ? options : [...options, buildSkipQuestionOption(language)];
 }
 
-function buildSkipQuestionOption(): NormalizedQuestionOption {
+function buildSkipQuestionOption(language: UiLanguage = "zh"): NormalizedQuestionOption {
   return {
     value: SKIP_QUESTION_OPTION_VALUE,
-    label: "跳过",
-    description: "保留为空"
+    label: language === "en" ? "Skip" : "跳过",
+    description: language === "en" ? "Leave empty" : "保留为空"
   };
 }
 

@@ -5,6 +5,7 @@ import type {
   NormalizedQuestionnaireInteraction
 } from "../../interactions/normalize.js";
 import { asRecord, getString, getStringArray } from "../../util/untyped.js";
+import type { UiLanguage } from "../../types.js";
 
 export interface QuestionnaireDraft {
   answers: Record<string, unknown>;
@@ -20,7 +21,11 @@ export function buildApprovalActions(interaction: NormalizedApprovalInteraction)
     }));
 }
 
-export function buildAnsweredInteractionDetails(responseJson: string | null, interaction: NormalizedInteraction): string[] {
+export function buildAnsweredInteractionDetails(
+  responseJson: string | null,
+  interaction: NormalizedInteraction,
+  language: UiLanguage = "zh"
+): string[] {
   if (interaction.kind !== "questionnaire") {
     return [];
   }
@@ -40,8 +45,10 @@ export function buildAnsweredInteractionDetails(responseJson: string | null, int
     }
 
     details.push(`${index + 1}. ${question.header}`);
-    details.push(`问题：${question.question}`);
-    details.push(`回答：${question.isSecret ? "已提交敏感回答，不显示内容" : answerList.join("，")}`);
+    details.push(`${language === "en" ? "Question: " : "问题："}${question.question}`);
+    details.push(`${language === "en" ? "Answer: " : "回答："}${question.isSecret
+      ? (language === "en" ? "Sensitive answer submitted; content hidden" : "已提交敏感回答，不显示内容")
+      : answerList.join(language === "en" ? ", " : "，")}`);
   }
 
   return details;
@@ -49,16 +56,17 @@ export function buildAnsweredInteractionDetails(responseJson: string | null, int
 
 export function summarizeAnsweredInteractionForSurface(
   responseJson: string | null,
-  interaction: NormalizedInteraction
+  interaction: NormalizedInteraction,
+  language: UiLanguage = "zh"
 ): string | null {
   if (interaction.kind !== "questionnaire") {
-    return summarizeAnsweredInteraction(responseJson, interaction);
+    return summarizeAnsweredInteraction(responseJson, interaction, language);
   }
 
   const payload = parseJsonRecord(responseJson);
   const answers = parseJsonRecord(payload?.answers);
   if (!answers) {
-    return summarizeAnsweredInteraction(responseJson, interaction);
+    return summarizeAnsweredInteraction(responseJson, interaction, language);
   }
 
   const segments = interaction.questions
@@ -69,7 +77,9 @@ export function summarizeAnsweredInteractionForSurface(
         return null;
       }
 
-      const answerText = question.isSecret ? "已提交敏感回答，不显示内容" : answerList.join("，");
+      const answerText = question.isSecret
+        ? (language === "en" ? "Sensitive answer submitted; content hidden" : "已提交敏感回答，不显示内容")
+        : answerList.join(language === "en" ? ", " : "，");
       return `${question.header}: ${answerText}`;
     })
     .filter((value): value is string => Boolean(value));
@@ -81,12 +91,26 @@ export function summarizeAnsweredInteractionForSurface(
   return `${interaction.title} / ${segments.join(" / ")}`;
 }
 
-export function summarizePermissions(value: unknown): string | null {
-  const parts = collectPermissionSummaryParts(value);
-  return parts.length > 0 ? parts.join("；") : "无额外权限";
+export function summarizePermissions(value: unknown, language: UiLanguage = "zh"): string | null {
+  const parts = collectPermissionSummaryParts(value, language);
+  return parts.length > 0 ? parts.join(language === "en" ? "; " : "；") : language === "en" ? "No additional permissions" : "无额外权限";
 }
 
-export function formatPendingInteractionTerminalReason(reason: string | null | undefined): string | null {
+export function formatPendingInteractionTerminalReason(reason: string | null | undefined, language: UiLanguage = "zh"): string | null {
+  if (language === "en") {
+    switch (reason) {
+      case "app_server_lost": return "The Codex service disconnected, so this interaction cannot continue.";
+      case "bridge_restart": return "The bridge service restarted, so this interaction cannot continue.";
+      case "response_dispatch_failed": return "The Codex service did not receive this interaction response.";
+      case "turn_completed":
+      case "turn_failed":
+      case "turn_interrupted": return "The current operation ended and this interaction expired.";
+      case "interaction_delivery_failed":
+      case "telegram_delivery_failed": return "The control surface could not deliver this interaction.";
+      default: return reason ? "This interaction cannot continue." : null;
+    }
+  }
+
   switch (reason) {
     case "app_server_lost":
       return "Codex 服务已断开，这个交互无法继续。";
@@ -141,72 +165,88 @@ export function hasDraftAnswer(draft: QuestionnaireDraft, questionId: string): b
   return Object.prototype.hasOwnProperty.call(draft.answers, questionId);
 }
 
-function summarizeAnsweredInteraction(responseJson: string | null, interaction: NormalizedInteraction): string | null {
+function summarizeAnsweredInteraction(
+  responseJson: string | null,
+  interaction: NormalizedInteraction,
+  language: UiLanguage = "zh"
+): string | null {
   const payload = parseJsonRecord(responseJson);
   switch (interaction.kind) {
     case "approval": {
       const decisionRecord = asRecord(payload?.decision);
       if (decisionRecord?.acceptWithExecpolicyAmendment) {
-        return "已批准，并更新命令规则";
+        return language === "en" ? "Approved and command rules updated" : "已批准，并更新命令规则";
       }
       if (decisionRecord?.applyNetworkPolicyAmendment) {
         const networkDecision = asRecord(decisionRecord.applyNetworkPolicyAmendment);
         const amendment = asRecord(networkDecision?.network_policy_amendment);
         const host = typeof amendment?.host === "string" ? amendment.host : null;
-        return host ? `已批准，并保存网络规则（${host}）` : "已批准，并保存网络规则";
+        return host
+          ? (language === "en" ? `Approved and saved network rule (${host})` : `已批准，并保存网络规则（${host}）`)
+          : language === "en" ? "Approved and saved network rule" : "已批准，并保存网络规则";
       }
 
       const decision = typeof payload?.decision === "string" ? payload.decision : null;
       if (decision === "accept" || decision === "approved") {
-        return "已批准";
+        return language === "en" ? "Approved" : "已批准";
       }
       if (decision === "acceptForSession" || decision === "approved_for_session") {
-        return "已批准，并写入本会话缓存";
+        return language === "en" ? "Approved and saved for this session" : "已批准，并写入本会话缓存";
       }
       if (decision === "decline" || decision === "denied") {
-        return "已拒绝";
+        return language === "en" ? "Declined" : "已拒绝";
       }
       if (decision === "cancel" || decision === "abort") {
-        return "已取消";
+        return language === "en" ? "Canceled" : "已取消";
       }
-      return "已处理";
+      return language === "en" ? "Handled" : "已处理";
     }
     case "permissions": {
       const scope = typeof payload?.scope === "string" ? payload.scope : "turn";
-      const granted = summarizeGrantedPermissions(payload?.permissions ?? null);
-      return granted ? `已授权（${scope}）: ${granted}` : `已拒绝（${scope}）`;
+      const granted = summarizeGrantedPermissions(payload?.permissions ?? null, language);
+      return granted
+        ? (language === "en" ? `Granted (${scope}): ${granted}` : `已授权（${scope}）: ${granted}`)
+        : language === "en" ? `Declined (${scope})` : `已拒绝（${scope}）`;
     }
     case "elicitation": {
       const action = typeof payload?.action === "string" ? payload.action : null;
-      return action === "accept" ? "已接受" : action === "decline" ? "已拒绝" : action === "cancel" ? "已取消" : "已处理";
+      return action === "accept"
+        ? language === "en" ? "Accepted" : "已接受"
+        : action === "decline" ? language === "en" ? "Declined" : "已拒绝"
+          : action === "cancel" ? language === "en" ? "Canceled" : "已取消"
+            : language === "en" ? "Handled" : "已处理";
     }
     case "questionnaire": {
       const action = typeof payload?.action === "string" ? payload.action : null;
       if (action === "cancel") {
-        return "已取消";
+        return language === "en" ? "Canceled" : "已取消";
       }
       if (action === "decline") {
-        return "已拒绝";
+        return language === "en" ? "Declined" : "已拒绝";
       }
       if (action === "accept") {
         const content = parseJsonRecord(payload?.content);
         const count = content ? Object.keys(content).length : 0;
-        return count > 0 ? `已提交 ${count} 个字段` : "已提交表单";
+        return count > 0
+          ? (language === "en" ? `Submitted ${count} fields` : `已提交 ${count} 个字段`)
+          : language === "en" ? "Form submitted" : "已提交表单";
       }
 
       const answers = parseJsonRecord(payload?.answers);
       const count = answers ? Object.keys(answers).length : 0;
-      return count > 0 ? `已提交 ${count} 个回答` : "已提交回答";
+      return count > 0
+        ? (language === "en" ? `Submitted ${count} answers` : `已提交 ${count} 个回答`)
+        : language === "en" ? "Answers submitted" : "已提交回答";
     }
   }
 }
 
-function summarizeGrantedPermissions(value: unknown): string | null {
-  const parts = collectPermissionSummaryParts(value);
-  return parts.length > 0 ? parts.join("；") : null;
+function summarizeGrantedPermissions(value: unknown, language: UiLanguage = "zh"): string | null {
+  const parts = collectPermissionSummaryParts(value, language);
+  return parts.length > 0 ? parts.join(language === "en" ? "; " : "；") : null;
 }
 
-function collectPermissionSummaryParts(value: unknown): string[] {
+function collectPermissionSummaryParts(value: unknown, language: UiLanguage = "zh"): string[] {
   const record = parseJsonRecord(value);
   if (!record) {
     return [];
@@ -218,18 +258,18 @@ function collectPermissionSummaryParts(value: unknown): string[] {
     const read = Array.isArray(fileSystem.read) ? fileSystem.read.length : 0;
     const write = Array.isArray(fileSystem.write) ? fileSystem.write.length : 0;
     if (read > 0 || write > 0) {
-      parts.push(`文件系统 读${read}/写${write}`);
+      parts.push(language === "en" ? `Filesystem read ${read}/write ${write}` : `文件系统 读${read}/写${write}`);
     }
   }
 
   const network = parseJsonRecord(record.network);
   if (network?.enabled === true) {
-    parts.push("网络");
+    parts.push(language === "en" ? "Network" : "网络");
   }
 
   const macos = parseJsonRecord(record.macos);
   if (macos) {
-    parts.push("macOS 权限");
+    parts.push(language === "en" ? "macOS permissions" : "macOS 权限");
   }
 
   return parts;
