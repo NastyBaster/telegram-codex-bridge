@@ -1100,13 +1100,13 @@ export function buildInteractionApprovalCard(options: InteractionApprovalCardRen
   text: string;
   replyMarkup: TelegramInlineKeyboardMarkup;
 } {
-  const language: UiLanguage = "zh";
-  const lines = [formatHtmlHeading(options.title), formatHtmlField("类型：", options.subtitle)];
+  const language: UiLanguage = options.language ?? "zh";
+  const lines = [formatHtmlHeading(options.title), formatHtmlField(language === "en" ? "Type: " : "类型：", options.subtitle)];
   if (options.body) {
-    lines.push(formatHtmlField("内容：", options.body));
+    lines.push(formatHtmlField(language === "en" ? "Content: " : "内容：", options.body));
   }
   if (options.detail) {
-    lines.push(formatHtmlField("说明：", options.detail));
+    lines.push(formatHtmlField(language === "en" ? "Details: " : "说明：", options.detail));
   }
   appendInteractionHubHint(lines, options.hubHint);
 
@@ -1121,7 +1121,7 @@ export function buildInteractionApprovalCard(options: InteractionApprovalCardRen
       inline_keyboard: (() => {
         const rows: TelegramInlineKeyboardMarkup["inline_keyboard"] = [
         actionRow,
-        [{ text: "取消本次交互", callback_data: encodeInteractionCancelCallback(options.interactionId) }]
+        [{ text: language === "en" ? "Cancel interaction" : "取消本次交互", callback_data: encodeInteractionCancelCallback(options.interactionId) }]
         ];
         appendBridgeActionRows(rows, options.bridgeActions, language, { chunkSize: 2 });
         return rows;
@@ -1134,27 +1134,27 @@ export function buildInteractionQuestionCard(options: InteractionQuestionCardRen
   text: string;
   replyMarkup: TelegramInlineKeyboardMarkup;
 } {
-  const language: UiLanguage = "zh";
+  const language: UiLanguage = options.language ?? "zh";
   const lines = [
     formatHtmlHeading(options.title),
-    formatHtmlField("问题：", `${options.questionIndex}/${options.totalQuestions}`),
-    formatHtmlField("标题：", options.header),
+    formatHtmlField(language === "en" ? "Question: " : "问题：", `${options.questionIndex}/${options.totalQuestions}`),
+    formatHtmlField(language === "en" ? "Header: " : "标题：", options.header),
     escapeHtml(options.question)
   ];
 
   if (options.isSecret) {
-    lines.push("<i>这条回答会按敏感输入处理，不会进入可见摘要。</i>");
+    lines.push(language === "en" ? "<i>This answer is treated as sensitive input and will not appear in visible summaries.</i>" : "<i>这条回答会按敏感输入处理，不会进入可见摘要。</i>");
   }
 
   if (options.awaitingText) {
-    lines.push("<i>当前正在等待你直接发送这条问题的文字回答。</i>");
+    lines.push(language === "en" ? "<i>Waiting for you to send a text answer to this question.</i>" : "<i>当前正在等待你直接发送这条问题的文字回答。</i>");
     appendInteractionHubHint(lines, options.hubHint);
     return {
       text: lines.join("\n"),
       replyMarkup: {
         inline_keyboard: (() => {
           const rows: TelegramInlineKeyboardMarkup["inline_keyboard"] = [
-            [{ text: "取消本次交互", callback_data: encodeInteractionCancelCallback(options.interactionId) }]
+            [{ text: language === "en" ? "Cancel interaction" : "取消本次交互", callback_data: encodeInteractionCancelCallback(options.interactionId) }]
           ];
           appendBridgeActionRows(rows, options.bridgeActions, language, { chunkSize: 2 });
           return rows;
@@ -1164,15 +1164,15 @@ export function buildInteractionQuestionCard(options: InteractionQuestionCardRen
   }
 
   if (!options.options || options.options.length === 0) {
-    lines.push("<i>点击下方按钮后，直接在聊天里发送你的回答。</i>");
+    lines.push(language === "en" ? "<i>Click the button below, then send your answer in the chat.</i>" : "<i>点击下方按钮后，直接在聊天里发送你的回答。</i>");
     appendInteractionHubHint(lines, options.hubHint);
     return {
       text: lines.join("\n"),
       replyMarkup: {
         inline_keyboard: (() => {
           const rows: TelegramInlineKeyboardMarkup["inline_keyboard"] = [
-          [{ text: "发送文字回答", callback_data: encodeInteractionTextCallback(options.interactionId, options.questionIndex - 1) }],
-          [{ text: "取消本次交互", callback_data: encodeInteractionCancelCallback(options.interactionId) }]
+          [{ text: language === "en" ? "Send text answer" : "发送文字回答", callback_data: encodeInteractionTextCallback(options.interactionId, options.questionIndex - 1) }],
+          [{ text: language === "en" ? "Cancel interaction" : "取消本次交互", callback_data: encodeInteractionCancelCallback(options.interactionId) }]
           ];
           appendBridgeActionRows(rows, options.bridgeActions, language, { chunkSize: 2 });
           return rows;
@@ -1194,13 +1194,13 @@ export function buildInteractionQuestionCard(options: InteractionQuestionCardRen
   if (options.isOther) {
     rows.push([
       {
-        text: "其他",
+        text: language === "en" ? "Other" : "其他",
         callback_data: encodeInteractionTextCallback(options.interactionId, options.questionIndex - 1)
       }
     ]);
   }
 
-  rows.push([{ text: "取消本次交互", callback_data: encodeInteractionCancelCallback(options.interactionId) }]);
+  rows.push([{ text: language === "en" ? "Cancel interaction" : "取消本次交互", callback_data: encodeInteractionCancelCallback(options.interactionId) }]);
   appendBridgeActionRows(rows, options.bridgeActions, language, { chunkSize: 2 });
   appendInteractionHubHint(lines, options.hubHint);
 
@@ -1214,21 +1214,21 @@ export function buildInteractionResolvedCard(options: InteractionResolvedCardRen
   text: string;
   replyMarkup?: TelegramInlineKeyboardMarkup;
 } {
-  const language: UiLanguage = "zh";
+  const language: UiLanguage = options.language ?? "zh";
   const stateText = options.state === "answered"
-    ? "已处理"
+    ? language === "en" ? "Handled" : "已处理"
     : options.state === "canceled"
-      ? "已取消"
-      : "处理失败";
+      ? language === "en" ? "Canceled" : "已取消"
+      : language === "en" ? "Failed" : "处理失败";
   const lines = [
     formatHtmlHeading(options.title),
-    formatHtmlField("状态：", stateText)
+    formatHtmlField(language === "en" ? "State: " : "状态：", stateText)
   ];
   if (options.summary) {
-    lines.push(formatHtmlField("结果：", options.summary));
+    lines.push(formatHtmlField(language === "en" ? "Result: " : "结果：", options.summary));
   }
   if (options.expanded && options.details && options.details.length > 0) {
-    lines.push("", formatHtmlHeading("已提交回答"));
+    lines.push("", formatHtmlHeading(language === "en" ? "Submitted answers" : "已提交回答"));
     for (const detail of options.details) {
       lines.push(escapeHtml(detail));
     }
@@ -1246,7 +1246,9 @@ export function buildInteractionResolvedCard(options: InteractionResolvedCardRen
   }
 
   const rows: TelegramInlineKeyboardMarkup["inline_keyboard"] = [[{
-    text: options.expanded ? "收起已提交回答" : "查看已提交回答",
+    text: options.expanded
+      ? (language === "en" ? "Hide submitted answers" : "收起已提交回答")
+      : (language === "en" ? "View submitted answers" : "查看已提交回答"),
     callback_data: options.expanded
       ? encodeInteractionAnswerCollapseCallback(options.interactionId)
       : encodeInteractionAnswerExpandCallback(options.interactionId)
@@ -1264,12 +1266,13 @@ export function buildInteractionExpiredCard(options: InteractionExpiredCardRende
   text: string;
   replyMarkup?: TelegramInlineKeyboardMarkup;
 } {
+  const language = options.language ?? "zh";
   const lines = [
     formatHtmlHeading(options.title),
-    formatHtmlField("状态：", "已过期")
+    formatHtmlField(language === "en" ? "State: " : "状态：", language === "en" ? "Expired" : "已过期")
   ];
   if (options.reason) {
-    lines.push(formatHtmlField("说明：", options.reason));
+    lines.push(formatHtmlField(language === "en" ? "Details: " : "说明：", options.reason));
   }
   return { text: lines.join("\n") };
 }

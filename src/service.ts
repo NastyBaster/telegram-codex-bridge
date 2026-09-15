@@ -343,6 +343,7 @@ export class BridgeService {
       getAppServer: () => this.appServer,
       logger: this.logger,
       preferBridgeCommandButtons: this.preferBridgeCommandButtons,
+      getUiLanguage: () => this.getUiLanguage(),
       safeSendMessage: async (chatId, text) => this.safeSendMessage(chatId, text),
       safeSendHtmlMessageResult: async (chatId, html, replyMarkup) => this.safeSendHtmlMessageResult(chatId, html, replyMarkup),
       safeEditHtmlMessageText: async (chatId, messageId, html, replyMarkup) => this.safeEditHtmlMessageText(chatId, messageId, html, replyMarkup),

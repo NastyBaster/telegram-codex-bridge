@@ -50,6 +50,49 @@ test("normalizeServerRequest converts command approvals into a bridge-owned appr
   });
 });
 
+test("normalizeServerRequest localizes bridge-owned interaction copy in English", () => {
+  const normalized = normalizeServerRequest("item/commandExecution/requestApproval", {
+    threadId: "thread-en",
+    turnId: "turn-en",
+    itemId: "item-en",
+    command: "npm test",
+    cwd: "C:\\workspace",
+    availableDecisions: ["accept", "acceptForSession", "decline", "cancel"]
+  }, "en");
+
+  assert.equal(normalized?.kind, "approval");
+  assert.equal(normalized?.title, "Codex requests command approval");
+  assert.equal(normalized?.subtitle, "Command approval");
+  assert.deepEqual(normalized?.decisionOptions.map((option) => option.label), [
+    "Approve",
+    "Always approve for this session",
+    "Decline",
+    "Cancel interaction"
+  ]);
+  assert.match(normalized?.detail ?? "", /Directory: C:\\workspace/u);
+});
+
+test("normalizeServerRequest rebuilds MCP form prompts in English", () => {
+  const interaction = normalizeServerRequest("mcpServer/elicitation/request", {
+    threadId: "thread-1",
+    turnId: "turn-1",
+    serverName: "deploy",
+    mode: "form",
+    requestedSchema: {
+      type: "object",
+      required: ["confirmed"],
+      properties: {
+        confirmed: { type: "boolean", title: "Confirm deployment" }
+      }
+    }
+  }, "en");
+
+  assert.equal(interaction?.kind, "questionnaire");
+  assert.equal(interaction?.title, "Codex needs more information");
+  assert.equal(interaction?.questions[0]?.question, "Provide Confirm deployment.\nChoose yes or no.\nThis field is required.");
+  assert.deepEqual(interaction?.questions[0]?.options?.map((option) => option.label), ["Yes", "No"]);
+});
+
 test("normalizeServerRequest preserves structured approval decision payloads", () => {
   const normalized = normalizeServerRequest("item/commandExecution/requestApproval", {
     threadId: "thread-1",

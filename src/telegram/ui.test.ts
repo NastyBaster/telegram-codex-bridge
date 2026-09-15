@@ -75,6 +75,41 @@ async function withMockedNow<T>(nowIso: string, callback: () => Promise<T> | T):
   }
 }
 
+test("English interaction cards localize bridge-owned labels and buttons", () => {
+  const approval = buildInteractionApprovalCard({
+    language: "en",
+    interactionId: "ix-en",
+    title: "Codex requests command approval",
+    subtitle: "Command approval",
+    body: "npm test",
+    detail: "Directory: C:\\workspace",
+    actions: [{ text: "Approve", decisionKey: "accept" }]
+  });
+  const question = buildInteractionQuestionCard({
+    language: "en",
+    interactionId: "ix-question-en",
+    title: "Codex needs more information",
+    questionId: "choice",
+    header: "Environment",
+    question: "Choose an environment.",
+    questionIndex: 1,
+    totalQuestions: 1,
+    options: [{ label: "Production", description: "Use production" }],
+    isOther: true,
+    isSecret: false
+  });
+  const visible = [
+    approval.text,
+    ...(approval.replyMarkup.inline_keyboard.flatMap((row) => row.map((button) => button.text))),
+    question.text,
+    ...(question.replyMarkup.inline_keyboard.flatMap((row) => row.map((button) => button.text)))
+  ].join("\n");
+
+  assert.doesNotMatch(visible, /\p{Script=Han}/u);
+  assert.match(visible, /Cancel interaction/u);
+  assert.match(visible, /Other/u);
+});
+
 function createSession(overrides: Partial<SessionRow>): SessionRow {
   const chatId = overrides.chatId ?? "chat-1";
   return {

@@ -22,7 +22,7 @@ import {
   buildInteractionResolvedCard,
   type ParsedCallbackData
 } from "../telegram/ui.js";
-import type { PendingInteractionRow, PendingInteractionSummary, PendingInteractionState, SessionRow } from "../types.js";
+import type { PendingInteractionRow, PendingInteractionSummary, PendingInteractionState, SessionRow, UiLanguage } from "../types.js";
 import { SKIP_QUESTION_OPTION_VALUE, type NormalizedInteraction, type NormalizedQuestion, type NormalizedQuestionnaireInteraction } from "../interactions/normalize.js";
 import { parseBooleanLike } from "../util/boolean.js";
 import { asRecord, getStringArray } from "../util/untyped.js";
@@ -74,13 +74,17 @@ interface InteractionBrokerAppServer {
   respondToServerRequestError(id: JsonRpcRequestId, code: number, message: string): Promise<void>;
 }
 
-const INTERACTION_HUB_HINT = "如需查看或刷新 Hub，可发送 /hub。";
+const INTERACTION_HUB_HINT: Record<UiLanguage, string> = {
+  zh: "如需查看或刷新 Hub，可发送 /hub。",
+  en: "Send /hub to view or refresh the Hub."
+};
 
 interface InteractionBrokerDeps {
   getStore: () => BridgeStateStore | null;
   getAppServer: () => InteractionBrokerAppServer | null;
   logger: Logger;
   preferBridgeCommandButtons: boolean;
+  getUiLanguage?: () => UiLanguage;
   safeSendMessage(chatId: string, text: string): Promise<boolean>;
   safeSendHtmlMessageResult(
     chatId: string,
@@ -487,6 +491,7 @@ export class InteractionBroker {
 
     const rendered = buildPendingInteractionSurface(row, interaction, {
       answeredExpanded: expanded,
+      language: this.deps.getUiLanguage?.() ?? "zh",
       preferBridgeCommandButtons: this.deps.preferBridgeCommandButtons
     });
     const result = await this.deps.safeEditHtmlMessageText(chatId, messageId, rendered.text, rendered.replyMarkup);
@@ -747,6 +752,7 @@ export class InteractionBroker {
     }
 
     const rendered = buildPendingInteractionSurface(row, interaction, {
+      language: this.deps.getUiLanguage?.() ?? "zh",
       preferBridgeCommandButtons: this.deps.preferBridgeCommandButtons
     });
     const result = await executeTelegramHtmlSurfaceOperation({
@@ -770,6 +776,7 @@ export class InteractionBroker {
     interaction: NormalizedInteraction
   ): Promise<PlatformSurfaceOperationResult> {
     const rendered = buildPendingInteractionSurface(pending, interaction, {
+      language: this.deps.getUiLanguage?.() ?? "zh",
       preferBridgeCommandButtons: this.deps.preferBridgeCommandButtons
     });
     return await executeTelegramHtmlSurfaceOperation({
@@ -927,6 +934,7 @@ function buildPendingInteractionSurface(
   interaction: NormalizedInteraction,
   options?: {
     answeredExpanded?: boolean;
+    language?: UiLanguage;
     preferBridgeCommandButtons?: boolean;
   }
 ): {
@@ -935,7 +943,8 @@ function buildPendingInteractionSurface(
 } {
   return renderInteractionCardView(createInteractionCardView(row, interaction, {
     ...(options?.answeredExpanded !== undefined ? { answeredExpanded: options.answeredExpanded } : {}),
-    hubHint: INTERACTION_HUB_HINT,
+    language: options?.language ?? "zh",
+    hubHint: INTERACTION_HUB_HINT[options?.language ?? "zh"],
     ...(options?.preferBridgeCommandButtons ? { bridgeActions: [{ command: "hub" as const }] } : {})
   }));
 }
