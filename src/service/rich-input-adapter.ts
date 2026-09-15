@@ -13,6 +13,7 @@ import type { BridgeStateStore } from "../state/store.js";
 import type { TelegramApi, TelegramInlineKeyboardMarkup, TelegramMessage } from "../telegram/api.js";
 import { buildBridgeCommandReplyMarkup } from "../telegram/ui.js";
 import type { SessionRow } from "../types.js";
+import { t, type LocaleKey } from "../i18n/locale.js";
 import { normalizeAndTruncate, normalizeWhitespace, splitStructuredInputCommand, truncateText } from "../util/text.js";
 import { asRecord, getArray, getString } from "../util/untyped.js";
 
@@ -130,6 +131,10 @@ export class RichInputAdapter {
 
   constructor(private readonly deps: RichInputAdapterDeps) {}
 
+  private copy(key: LocaleKey, params: Record<string, string | number> = {}): string {
+    return t(this.deps.getUiLanguage(), key, params);
+  }
+
   private buildBridgeCommandActionsReplyMarkup(actions: BridgeCommandActionView[]): TelegramInlineKeyboardMarkup | undefined {
     if (!this.deps.preferBridgeCommandButtons || actions.length === 0) {
       return undefined;
@@ -175,7 +180,7 @@ export class RichInputAdapter {
 
     this.pendingRichInputComposers.delete(chatId);
     this.pendingAutoAttachByChatId.delete(chatId);
-    await this.deps.safeSendMessage(chatId, "已取消待发送的结构化输入。");
+    await this.deps.safeSendMessage(chatId, this.copy("telegram.richInput.canceled"));
     return true;
   }
 
@@ -189,13 +194,13 @@ export class RichInputAdapter {
     const activeSession = store.getActiveSession(chatId);
     if (!activeSession || activeSession.sessionId !== pending.sessionId) {
       this.pendingRichInputComposers.delete(chatId);
-      await this.deps.safeSendMessage(chatId, "当前会话已经变化，请重新发送结构化输入。");
+      await this.deps.safeSendMessage(chatId, this.copy("telegram.richInput.sessionChanged"));
       return;
     }
 
     const prompt = text.trim();
     if (!prompt) {
-      await this.deps.safeSendMessage(chatId, `请继续发送要和${pending.promptLabel}一起交给 Codex 的说明。`);
+      await this.deps.safeSendMessage(chatId, this.copy("telegram.richInput.continuePrompt", { label: pending.promptLabel }));
       return;
     }
 
@@ -214,26 +219,26 @@ export class RichInputAdapter {
 
     const activeSession = store.getActiveSession(chatId);
     if (!activeSession) {
-      await this.deps.safeSendMessage(chatId, "当前没有活动会话。");
+      await this.deps.safeSendMessage(chatId, this.copy("telegram.richInput.noSession"));
       return;
     }
 
     const parsed = splitStructuredInputCommand(args);
     if (!parsed.value) {
-      await this.deps.safeSendMessage(chatId, "用法：/local_image <图片路径> :: 任务说明");
+      await this.deps.safeSendMessage(chatId, this.copy("telegram.richInput.localImageUsage"));
       return;
     }
 
     const imagePath = resolve(activeSession.projectPath, parsed.value);
     if (!await isReadableImagePath(imagePath)) {
-      await this.deps.safeSendMessage(chatId, "这个本地图片路径不可用，请确认文件存在且是常见图片格式。");
+      await this.deps.safeSendMessage(chatId, this.copy("telegram.richInput.localImageInvalid"));
       return;
     }
 
     await this.submitOrQueueRichInput(chatId, activeSession, [{
       type: "localImage",
       path: imagePath
-    }], parsed.prompt, `本地图片：${basename(imagePath)}`);
+    }], parsed.prompt, this.copy("telegram.richInput.localImageLabel", { name: basename(imagePath) }));
   }
 
   async handleMention(chatId: string, args: string): Promise<void> {
@@ -244,13 +249,13 @@ export class RichInputAdapter {
 
     const activeSession = store.getActiveSession(chatId);
     if (!activeSession) {
-      await this.deps.safeSendMessage(chatId, "当前没有活动会话。");
+      await this.deps.safeSendMessage(chatId, this.copy("telegram.richInput.noSession"));
       return;
     }
 
     const parsed = splitStructuredInputCommand(args);
     if (!parsed.value) {
-      await this.deps.safeSendMessage(chatId, "用法：/mention <path> :: 任务说明");
+      await this.deps.safeSendMessage(chatId, this.copy("telegram.richInput.mentionUsage"));
       return;
     }
 
@@ -259,7 +264,7 @@ export class RichInputAdapter {
       type: "mention",
       name,
       path
-    }], parsed.prompt, `引用：${name}`);
+    }], parsed.prompt, this.copy("telegram.richInput.mentionLabel", { name }));
   }
 
   async handleAttach(chatId: string, args: string): Promise<void> {
@@ -270,26 +275,26 @@ export class RichInputAdapter {
 
     const activeSession = store.getActiveSession(chatId);
     if (!activeSession) {
-      await this.deps.safeSendMessage(chatId, "当前没有活动会话。");
+      await this.deps.safeSendMessage(chatId, this.copy("telegram.richInput.noSession"));
       return;
     }
 
     const parsed = splitStructuredInputCommand(args);
     if (!parsed.value) {
-      await this.deps.safeSendMessage(chatId, "用法：/attach <附件ID> :: 任务说明");
+      await this.deps.safeSendMessage(chatId, this.copy("telegram.richInput.attachUsage"));
       return;
     }
 
     const attachment = this.findAttachment(activeSession.sessionId, parsed.value);
     if (!attachment) {
-      await this.deps.safeSendMessage(chatId, `找不到附件：${parsed.value}`);
+      await this.deps.safeSendMessage(chatId, this.copy("telegram.richInput.attachmentNotFound", { id: parsed.value }));
       return;
     }
 
     this.pendingAutoAttachByChatId.delete(chatId);
     const attachmentInputs = await this.buildAttachmentInputs(attachment);
     if (attachmentInputs.length === 0) {
-      await this.deps.safeSendMessage(chatId, `当前无法把附件 ${attachment.filename} 转成 Codex 可读输入。`);
+      await this.deps.safeSendMessage(chatId, this.copy("telegram.richInput.attachmentUnreadable", { name: attachment.filename }));
       return;
     }
     await this.submitOrQueueRichInput(chatId, activeSession, attachmentInputs, parsed.prompt, `附件：${attachment.filename}`);
@@ -345,13 +350,13 @@ export class RichInputAdapter {
     }
 
     if (!this.deps.config.voiceInputEnabled) {
-      await this.deps.safeSendMessage(chatId, "未启用语音输入。");
+      await this.deps.safeSendMessage(chatId, this.copy("telegram.richInput.voiceDisabled"));
       return;
     }
 
     const activeSession = store.getActiveSession(chatId);
     if (!activeSession) {
-      await this.deps.safeSendMessage(chatId, "请先发送 /new 选择项目。");
+      await this.deps.safeSendMessage(chatId, this.copy("telegram.richInput.selectProject"));
       return;
     }
 
@@ -383,7 +388,7 @@ export class RichInputAdapter {
 
     const activeSession = store.getActiveSession(chatId);
     if (!activeSession) {
-      await this.deps.safeSendMessage(chatId, "请先发送 /new 选择项目。");
+      await this.deps.safeSendMessage(chatId, this.copy("telegram.richInput.selectProject"));
       return;
     }
 
@@ -395,13 +400,13 @@ export class RichInputAdapter {
     try {
       const file = await api.getFile(photo.file_id);
       if (!file.file_path) {
-        await this.deps.safeSendMessage(chatId, "暂时无法读取这张图片，请稍后重试。");
+        await this.deps.safeSendMessage(chatId, this.copy("telegram.richInput.imageUnreadable"));
         return;
       }
 
       const localImagePath = await this.cacheTelegramPhoto(message.message_id, photo.file_id, file.file_path, file);
       if (!localImagePath) {
-        await this.deps.safeSendMessage(chatId, "暂时无法读取这张图片，请稍后重试。");
+        await this.deps.safeSendMessage(chatId, this.copy("telegram.richInput.imageUnreadable"));
         return;
       }
 
@@ -413,7 +418,7 @@ export class RichInputAdapter {
         "图片"
       );
     } catch {
-      await this.deps.safeSendMessage(chatId, "暂时无法读取这张图片，请稍后重试。");
+      await this.deps.safeSendMessage(chatId, this.copy("telegram.richInput.imageUnreadable"));
     }
   }
 
@@ -425,7 +430,7 @@ export class RichInputAdapter {
 
     const activeSession = store.getActiveSession(chatId);
     if (!activeSession) {
-      await this.deps.safeSendMessage(chatId, "请先发送 /new 选择项目。");
+      await this.deps.safeSendMessage(chatId, this.copy("telegram.richInput.selectProject"));
       return;
     }
 
@@ -1040,7 +1045,7 @@ export class RichInputAdapter {
       && assets[0]?.descriptor.kind === "image"
       && assets[0].descriptor.platformRef?.platform === "telegram"
     ) {
-      await this.deps.safeSendMessage(chatId, "暂时无法读取这张图片，请稍后重试。");
+      await this.deps.safeSendMessage(chatId, this.copy("telegram.richInput.imageUnreadable"));
       return;
     }
 

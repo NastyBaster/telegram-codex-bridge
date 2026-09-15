@@ -71,7 +71,22 @@ export const LOCALE_COPY = {
     "telegram.browser.infoTitle": "文件信息",
     "telegram.browser.type": "类型：",
     "telegram.browser.binary": "二进制或暂不支持预览",
-    "telegram.browser.imagePreview": "图片预览"
+    "telegram.browser.imagePreview": "图片预览",
+    "telegram.richInput.canceled": "已取消待发送的结构化输入。",
+    "telegram.richInput.sessionChanged": "当前会话已经变化，请重新发送结构化输入。",
+    "telegram.richInput.continuePrompt": "请继续发送要和{label}一起交给 Codex 的说明。",
+    "telegram.richInput.noSession": "当前没有活动会话。",
+    "telegram.richInput.localImageUsage": "用法：/local_image <图片路径> :: 任务说明",
+    "telegram.richInput.localImageInvalid": "这个本地图片路径不可用，请确认文件存在且是常见图片格式。",
+    "telegram.richInput.localImageLabel": "本地图片：{name}",
+    "telegram.richInput.mentionUsage": "用法：/mention <path> :: 任务说明",
+    "telegram.richInput.mentionLabel": "引用：{name}",
+    "telegram.richInput.attachUsage": "用法：/attach <附件ID> :: 任务说明",
+    "telegram.richInput.attachmentNotFound": "找不到附件：{id}",
+    "telegram.richInput.attachmentUnreadable": "当前无法把附件 {name} 转成 Codex 可读输入。",
+    "telegram.richInput.voiceDisabled": "未启用语音输入。",
+    "telegram.richInput.selectProject": "请先发送 /new 选择项目。",
+    "telegram.richInput.imageUnreadable": "暂时无法读取这张图片，请稍后重试。"
   },
   en: {
     "interaction.approval.commandTitle": "Codex requests command approval",
@@ -143,7 +158,22 @@ export const LOCALE_COPY = {
     "telegram.browser.infoTitle": "File Info",
     "telegram.browser.type": "Type:",
     "telegram.browser.binary": "Binary or unsupported preview",
-    "telegram.browser.imagePreview": "Image Preview"
+    "telegram.browser.imagePreview": "Image Preview",
+    "telegram.richInput.canceled": "Canceled the pending structured input.",
+    "telegram.richInput.sessionChanged": "The active session changed. Please send the structured input again.",
+    "telegram.richInput.continuePrompt": "Continue by sending the instructions to submit with {label} to Codex.",
+    "telegram.richInput.noSession": "There is no active session.",
+    "telegram.richInput.localImageUsage": "Usage: /local_image <image path> :: task description",
+    "telegram.richInput.localImageInvalid": "That local image path is not usable. Check that the file exists and is a common image format.",
+    "telegram.richInput.localImageLabel": "Local image: {name}",
+    "telegram.richInput.mentionUsage": "Usage: /mention <path> :: task description",
+    "telegram.richInput.mentionLabel": "Mention: {name}",
+    "telegram.richInput.attachUsage": "Usage: /attach <attachment ID> :: task description",
+    "telegram.richInput.attachmentNotFound": "Attachment not found: {id}",
+    "telegram.richInput.attachmentUnreadable": "The attachment {name} cannot currently be converted into Codex-readable input.",
+    "telegram.richInput.voiceDisabled": "Voice input is not enabled.",
+    "telegram.richInput.selectProject": "Send /new first to choose a project.",
+    "telegram.richInput.imageUnreadable": "The image could not be read right now. Please try again later."
   }
 } as const;
 
